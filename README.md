@@ -10,10 +10,10 @@ This project is a GUI application for extracting fragments and using state-of-th
 
 ## Graphical User Interface
 <img src="screenshots/fragment_extractor.png" alt="fragment_extractor" width="300" /> <img src="screenshots/fragment_extractor_2.png" alt="fragment_extractor_2" width="300" />
-<img src="screenshots/feature_extractor.png" alt="feature_extractor" width="300" />
+<img src="screenshots/feature_extractor.png" alt="feature_extractor" width="500" />
 
 ## Downloads
-1.  You can directly download the portable .exe for 64-bit Windows OS from the [Releases page](link-to-your-release-page).
+1.  You can directly download the portable .exe for 64-bit Windows OS from the [Releases page](https://github.com/luciunfair/Enc-fragment-extractor/releases//latest).
 
 2.  Alternatively, you can follow the instructions below to run it on any OS:
 
