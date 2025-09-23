@@ -10,6 +10,7 @@ this project is gui application for extracting fragments and the best features o
 
 ## Graphical User Interface
 ![fragment_extractor](screenshots/fragment_extractor.png) ![fragment_extractor_2](screenshots/fragment_extractor_2.png)
+<img src="screenshots/fragment_extractor.png" alt="Description" width="50%" /> <img src="screenshots/fragment_extractor_2.png" alt="Description" width="50%" />
 ![feature_extraction](screenshots/feature_extractor.png)
 
 ## Downloads
