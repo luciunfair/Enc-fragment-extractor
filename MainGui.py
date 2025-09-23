@@ -12,6 +12,9 @@ import base64
 import tkinter as tk
 from PIL import Image, ImageTk
 
+print(np.__version__)
+print(pd.__version__)
+print(psg.__version__) 
 
 # This function determines the correct base path whether running as a script or as a frozen exe.
 def resource_path(relative_path):
