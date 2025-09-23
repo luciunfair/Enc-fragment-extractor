@@ -1,11 +1,12 @@
-# Project Name
+# Enc-fragment-extractor
 
-Short description of what this project does and why it matters.
+this project is gui application for extracting fragments and the best features of the states of the arts to determine encrypted fragments from unecrypted ones 
 
 ## Features
-- Key capability 1
-- Key capability 2
-- Key capability 3
+- extracting fragments from whole dataset
+- extracting fragments from each file
+- extracting features parallelly
+- state of the art models features such as NIST 800-22, HEDGE, EnCoD, BLFCP
 
 ## Getting Started
 - Prerequisites: list tools/runtimes
