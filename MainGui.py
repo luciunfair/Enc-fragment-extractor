@@ -410,7 +410,7 @@ def process_row(row, dic_checklist):
         if dic_checklist['13_2_serial_test_pvalue']==True:
             for pv in pval[0]: all_features.append(pv) #2 values
     if dic_checklist['14_1_binary_matrix_rank_test_success']==True or dic_checklist['14_2_binary_matrix_rank_test_pvalue']==True:
-        success, pval, _ = binary_matrix_rank_test(bits)
+        success, pval, _ = binary_matrix_rank_test(bits, M=28, Q=28)
         if dic_checklist['14_1_binary_matrix_rank_test_success']==True: all_features.append(1 if success==True else 0)
         if dic_checklist['14_2_binary_matrix_rank_test_pvalue']==True: all_features.append(pval)       
     if dic_checklist["16_chi_test_absolute_success"] or dic_checklist["17_chi_test_confidence_success"] or dic_checklist["18_1_chi2_uniform_stat"] or dic_checklist["18_2_chi2_uniform_pvalue"]:
