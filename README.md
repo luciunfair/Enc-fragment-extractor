@@ -9,10 +9,8 @@ this project is gui application for extracting fragments and the best features o
 - state of the art models features such as NIST 800-22, HEDGE, EnCoD, BLFCP
 
 ## Graphical User Interface
-![fragment_extractor](screenshots/fragment_extractor.png) ![fragment_extractor_2](screenshots/fragment_extractor_2.png)
-<img src="screenshots/fragment_extractor.png" alt="Description" width="50%" /> <img src="screenshots/fragment_extractor_2.png" alt="Description" width="50%" />
-![feature_extraction](screenshots/feature_extractor.png)
-
+<img src="screenshots/fragment_extractor.png" alt="fragment_extractor" width="300" /> <img src="screenshots/fragment_extractor_2.png" alt="fragment_extractor_2" width="300" />
+<img src="screenshots/feature_extractor.png" alt="feature_extractor" width="300" />
 ## Downloads
 - Get packaged builds from the Releases page.
 - Source code archives are available with each release tag.
