@@ -12,9 +12,6 @@ import base64
 import tkinter as tk
 from PIL import Image, ImageTk
 
-print(np.__version__)
-print(pd.__version__)
-print(psg.__version__) 
 
 # This function determines the correct base path whether running as a script or as a frozen exe.
 def resource_path(relative_path):
@@ -33,6 +30,7 @@ sys.path.append(resource_path("feature_extractor"))
 sys.path.append(resource_path("feature_extractor/NIST/"))
 sys.path.append(resource_path("feature_extractor/HEDGE_specials/"))
 sys.path.append(resource_path("feature_extractor/BLFCP_specials/"))
+sys.path.append(resource_path("combine_csv/"))
 # --- END of PATH FIX ---
 
 
@@ -57,6 +55,7 @@ from sp800_22_binary_matrix_rank_test import binary_matrix_rank_test
 from sp800_22_linear_complexity_test import linear_complexity_test
 from HEDGE_fspecials import *
 from BLFCP_fspecials import *
+from combine import *
 
 # Your original theme and settings, untouched
 psg.LOOK_AND_FEEL_TABLE['DarkGreen'] = {
@@ -580,6 +579,81 @@ def parallel_feature_extraction_large_file(window, input_file_path, output_file_
         psg.popup_error(f"An error occurred in the worker thread:\n\n{e}", title="Error")
         window.write_event_value('-THREAD-DONE-', False)
 
+def button_5():
+    layout = [
+        [psg.VPush()],
+        [psg.Text("first csv"), psg.Input(key="-INP1B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True),psg.FileBrowse(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Text("second csv"), psg.Input(key="-INP2B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True),psg.FileBrowse(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Column([[psg.Checkbox("header", default=True, key="-INP3B1-",  )]], expand_x=True, element_justification='center' )],
+        [psg.Text("destination file folder", tooltip="the file name and path that you want to save combined csv files to"), psg.Input(key="-INP4B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True), psg.FileSaveAs(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Column([[psg.Button("combine", key="-ETC-")]], expand_x=True, element_justification='center' )],
+        [psg.VPush()],
+    ]
+    window = psg.Window("combine csv files along their rows", layout, resizable=True)
+    while True:
+        event, values = window.read()
+        if event in ["Exit", psg.WIN_CLOSED]: break
+        if event=="-ETC-":
+            layout_2 = [
+                [psg.Text("combine csv files along their rows.")],
+                [psg.Text("Status:"), psg.Text("Idle", key='-STATUS-')],
+                [psg.ProgressBar(1, orientation='h', size=(50, 20), key='-PROGRESS-')],
+                [psg.Text("", key='-TIME-')],
+                [psg.Button("Start"), psg.Button("Cancel", key="-CNL-", disabled=True)]
+            ]
+            window_2 = psg.Window("Fragment Extractor", layout_2)
+            while True:
+                event_2, values_2 = window_2.read()
+                if event_2 in ["Exit", psg.WIN_CLOSED]: break
+                if event_2 == 'Start':
+                    window_2['-CNL-'].update(disabled=False)
+                    window_2['Start'].update(disabled=True)
+                    success = concatenate_rows_gui(window_2, [values["-INP1B1-"], values["-INP2B1-"]], values["-INP4B1-"], header=values["-INP3B1-"] )
+                    if success: psg.popup("Done!", "The process completed successfully."); break
+                    else: psg.popup("Cancelled", "The process was cancelled by the user."); break
+                    window_2['-CNL-'].update(disabled=True)
+                    window_2['Start'].update(disabled=False)
+            window_2.close()
+            window.close()
+    window.close()
+
+def button_6():
+    layout = [
+        [psg.VPush()],
+        [psg.Text("first csv"), psg.Input(key="-INP1B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True),psg.FileBrowse(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Text("second csv"), psg.Input(key="-INP2B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True),psg.FileBrowse(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Column([[psg.Checkbox("header", default=True, key="-INP3B1-",  )]], expand_x=True, element_justification='center' )],
+        [psg.Text("destination file folder", tooltip="the file name and path that you want to save combined csv files to"), psg.Input(key="-INP4B1-", readonly=True, disabled_readonly_background_color=readonly_bgcolor, disabled_readonly_text_color=readonly_textcolor, expand_x=True), psg.FileSaveAs(file_types=((('CSV Files', '*.csv'),)))],
+        [psg.Column([[psg.Button("combine", key="-ETC-")]], expand_x=True, element_justification='center' )],
+        [psg.VPush()],
+    ]
+    window = psg.Window("combine csv files along their columns", layout, resizable=True)
+    while True:
+        event, values = window.read()
+        if event in ["Exit", psg.WIN_CLOSED]: break
+        if event=="-ETC-":
+            layout_2 = [
+                [psg.Text("combine csv files along their columns.")],
+                [psg.Text("Status:"), psg.Text("Idle", key='-STATUS-')],
+                [psg.ProgressBar(1, orientation='h', size=(50, 20), key='-PROGRESS-')],
+                [psg.Text("", key='-TIME-')],
+                [psg.Button("Start"), psg.Button("Cancel", key="-CNL-", disabled=True)]
+            ]
+            window_2 = psg.Window("Fragment Extractor", layout_2)
+            while True:
+                event_2, values_2 = window_2.read()
+                if event_2 in ["Exit", psg.WIN_CLOSED]: break
+                if event_2 == 'Start':
+                    window_2['-CNL-'].update(disabled=False)
+                    window_2['Start'].update(disabled=True)
+                    success = concatenate_columns_gui(window_2, [values["-INP1B1-"], values["-INP2B1-"]], values["-INP4B1-"], header=values["-INP3B1-"] )
+                    if success: psg.popup("Done!", "The process completed successfully."); break
+                    else: psg.popup("Cancelled", "The process was cancelled by the user."); break
+                    window_2['-CNL-'].update(disabled=True)
+                    window_2['Start'].update(disabled=False)
+            window_2.close()
+            window.close()
+    window.close()
 # Your original main execution block, untouched (with mp.freeze_support() added for safety)
 if __name__ == '__main__':
     mp.freeze_support() # Recommended for multiprocessing, especially for executables
@@ -600,7 +674,14 @@ if __name__ == '__main__':
         [psg.VPush()],
     ]
     tab_feature_extractor = psg.Tab("feature extractor", ltab_feature_extractor)
-    ltab_group = [[tab_extract_file, tab_feature_extractor]]
+    ltab_combine_csv = [
+        [psg.VPush()],
+        [psg.Push(), psg.Column([[psg.Button("combine csv files along their rows", key='-BTN5-', button_color=NORMAL_COLOR)], [psg.Button("combine csv files along their columns", key='-BTN6-', button_color=NORMAL_COLOR)],], element_justification='c'), psg.Push()],
+        [psg.VPush()],
+    ]
+    tab_combine_csv = psg.Tab("combine csv files", ltab_combine_csv)
+    
+    ltab_group = [[tab_extract_file, tab_feature_extractor, tab_combine_csv]]
     main_layout = [
         [psg.Menu(menu_def, background_color='#3C3C3C', text_color='#FFFFFF', tearoff=False)],
         [psg.TabGroup(ltab_group, tab_location="center", expand_x=True, expand_y=True)]
@@ -635,7 +716,8 @@ if __name__ == '__main__':
     window['-BTN2-'].bind('<Enter>', '_ENTER'); window['-BTN2-'].bind('<Leave>', '_LEAVE')
     window['-BTN3-'].bind('<Enter>', '_ENTER'); window['-BTN3-'].bind('<Leave>', '_LEAVE')
     window['-BTN4-'].bind('<Enter>', '_ENTER'); window['-BTN4-'].bind('<Leave>', '_LEAVE')
-
+    window['-BTN5-'].bind('<Enter>', '_ENTER'); window['-BTN5-'].bind('<Leave>', '_LEAVE')
+    window['-BTN6-'].bind('<Enter>', '_ENTER'); window['-BTN6-'].bind('<Leave>', '_LEAVE')
     while True:
         event, values = window.read()
         if event=="about":psg.popup('Version 0.8', 'Created by alireza aliaskari hosseinabadi', button_justification="center",  grab_anywhere=True)
@@ -650,8 +732,14 @@ if __name__ == '__main__':
         elif event == '-BTN3-_LEAVE': window['-BTN3-'].update(button_color=NORMAL_COLOR)
         if event == '-BTN4-_ENTER': window['-BTN4-'].update(button_color=HOVER_COLOR)
         elif event == '-BTN4-_LEAVE': window['-BTN4-'].update(button_color=NORMAL_COLOR)
+        if event == '-BTN5-_ENTER': window['-BTN5-'].update(button_color=HOVER_COLOR)
+        elif event == '-BTN5-_LEAVE': window['-BTN5-'].update(button_color=NORMAL_COLOR)
+        if event == '-BTN6-_ENTER': window['-BTN6-'].update(button_color=HOVER_COLOR)
+        elif event == '-BTN6-_LEAVE': window['-BTN6-'].update(button_color=NORMAL_COLOR)
         if event=='-BTN1-': button_1()
         elif event=='-BTN2-': button_2()
         elif event=='-BTN3-': button_3()
         elif event=='-BTN4-': button_4()
+        elif event=='-BTN5-': button_5()
+        elif event=='-BTN6-': button_6()
     window.close()

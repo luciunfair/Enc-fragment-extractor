@@ -2,3 +2,6 @@ numpy==1.24.2
 pandas==2.2.2
 Pillow==10.2.0
 FreeSimpleGUI==5.1.0
+scipy==1.16.1
+dask[dataframe]==2025.9.1
+fsspec=2025.9.0
