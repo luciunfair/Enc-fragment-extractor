@@ -7,6 +7,7 @@ This project is a GUI application for extracting fragments and using state-of-th
 - Extracting fragments from each file
 - Extracting features in parallel
 - State-of-the-art models features such as NIST 800-22, HEDGE, EnCoD, and BLFCP
+- combine csv files
 
 ## Graphical User Interface
 <img src="screenshots/fragment_extractor.png" alt="fragment_extractor" width="300" /> <img src="screenshots/fragment_extractor_2.png" alt="fragment_extractor_2" width="300" />
