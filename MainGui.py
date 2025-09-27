@@ -720,7 +720,7 @@ if __name__ == '__main__':
     window['-BTN6-'].bind('<Enter>', '_ENTER'); window['-BTN6-'].bind('<Leave>', '_LEAVE')
     while True:
         event, values = window.read()
-        if event=="about":psg.popup('Version 0.8', 'Created by alireza aliaskari hosseinabadi', button_justification="center",  grab_anywhere=True)
+        if event=="about":psg.popup('Version 0.8.3', 'Created by alireza aliaskari hosseinabadi', button_justification="center",  grab_anywhere=True)
         if event=="guidance":
             guidance()
         if event in ["Exit", psg.WIN_CLOSED]: break
