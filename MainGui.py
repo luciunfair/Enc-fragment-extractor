@@ -725,7 +725,7 @@ if __name__ == '__main__':
     tab_extract_file = psg.Tab("fragment extractor", ltab_extract_file)
     ltab_feature_extractor= [
         [psg.Text("⚠️ WARNING: for now this version of  app's features extraction", text_color='yellow', font=('Helvetica', 10, 'bold'))],
-        [psg.Text('\t          is usable and optimized for 4096 bytes fragments!', text_color='yellow', font=('Helvetica', 10, 'bold'))],
+        [psg.Text('\t          is usable and optimized for 4096 bytes fragments for feature extraction!', text_color='yellow', font=('Helvetica', 10, 'bold'))],
         [psg.VPush()],
         [psg.Push(), psg.Column([[psg.Button("extract features", key='-BTN4-', button_color=NORMAL_COLOR)],], element_justification='c'), psg.Push()],
         [psg.VPush()],
@@ -777,7 +777,7 @@ if __name__ == '__main__':
     window['-BTN6-'].bind('<Enter>', '_ENTER'); window['-BTN6-'].bind('<Leave>', '_LEAVE')
     while True:
         event, values = window.read()
-        if event=="about":psg.popup('Version 0.8.3', 'Created by alireza aliaskari hosseinabadi', button_justification="center",  grab_anywhere=True)
+        if event=="about":psg.popup('Version 0.9.0', 'Created by alireza aliaskari hosseinabadi', button_justification="center",  grab_anywhere=True)
         if event=="guidance":
             guidance()
         if event in ["Exit", psg.WIN_CLOSED]: break
