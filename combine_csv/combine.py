@@ -62,70 +62,68 @@ def concatenate_columns_gui(window: psg.Window, file_list: List[str], output_fil
         psg.popup_error(f"An unexpected error occurred: {e}")
         return False
 
-def concatenate_rows_gui(window: psg.Window, file_list: List[str], output_file: str, chunk_size: int = 10000, sep: str = ',', header: bool = True) -> bool:
+def concatenate_columns_gui(window: psg.Window, file_list: List[str], output_file: str, chunk_size: int = 10000, sep: str = ',', header: bool = True) -> bool:
     """
-    Concatenates CSV files along rows using a chunking approach with detailed GUI feedback.
+    Concatenates files Side-by-Side (Axis=1) using the exact same inputs as the row function.
     """
     try:
         if not file_list:
             psg.popup_error("Error: The list of files is empty.")
             return False
 
-        # Calculate total size for accurate progress bar
-        total_size = sum(os.path.getsize(f) for f in file_list)
-        processed_size = 0
+        # 1. Determine Header Handling based on input
+        # If header=True, we read the first row as header. If False, we assume no header exists.
+        read_header_arg = 0 if header else None
         
-        window['-STATUS-'].update(f'Preparing to concatenate {len(file_list)} files by row...')
-        window['-PROGRESS-'].update(0, max=total_size)
-        start_time = time.time()
+        window['-STATUS-'].update('Preparing to merge columns...')
+        window['-PROGRESS-'].update(0, max=100) # Indeterminate progress for zip operations
         
-        read_header = 0 if header else None
+        # 2. Create Iterators for ALL files simultaneously
+        # We pass 'sep' and 'header' here to respect your inputs
+        file_iterators = [
+            pd.read_csv(f, chunksize=chunk_size, sep=sep, header=read_header_arg, dtype=str) 
+            for f in file_list
+        ]
         
-        # Open the output file once
-        with open(output_file, 'w', newline='') as f_out:
-            # Process the first file to handle the header correctly
-            first_file = file_list[0]
+        first_chunk = True
+        
+        # 3. Open Output File
+        with open(output_file, 'w', newline='', encoding='utf-8') as f_out:
             
-            # Use a for loop for chunk processing to handle cancellation
-            for i, chunk in enumerate(pd.read_csv(first_file, chunksize=chunk_size, header=read_header)):
+            # 4. Iterate through all files in lock-step
+            for i, chunks in enumerate(zip(*file_iterators)):
+                
+                # GUI Responsiveness check
                 event, _ = window.read(timeout=0)
                 if event in (psg.WIN_CLOSED, '-CNL-'):
-                    psg.popup("Cancelled", "The process was cancelled by the user.")
+                    psg.popup("Cancelled", "Process stopped by user.")
                     return False
-                
-                # Write the first chunk with or without header, subsequent chunks without
-                write_header = header if i == 0 else False
-                chunk.to_csv(f_out, sep=sep, index=False, header=write_header)
 
-            processed_size += os.path.getsize(first_file)
-
-            # Process the rest of the files
-            for file_idx, file in enumerate(file_list[1:], start=1):
-                window['-STATUS-'].update(f'Processing file {file_idx+1}/{len(file_list)}: {os.path.basename(file)}')
+                # Align indices to ensure safe concatenation (ignores row index numbers)
+                for c in chunks:
+                    c.reset_index(drop=True, inplace=True)
                 
-                for chunk in pd.read_csv(file, chunksize=chunk_size, header=read_header):
-                    event, _ = window.read(timeout=0)
-                    if event in (psg.WIN_CLOSED, '-CNL-'):
-                        psg.popup("Cancelled", "The process was cancelled by the user.")
-                        return False
-                    chunk.to_csv(f_out, sep=sep, index=False, header=False)
-
-                # Update progress after each file is completed
-                processed_size += os.path.getsize(file)
-                elapsed_time = time.time() - start_time
-                progress_percent = processed_size / total_size if total_size > 0 else 0
-                etr = (elapsed_time / progress_percent) - elapsed_time if progress_percent > 0.01 else None
+                # Concatenate the chunks side-by-side
+                merged_chunk = pd.concat(chunks, axis=1)
                 
-                window['-PROGRESS-'].update(processed_size)
-                window['-TIME-'].update(f"Elapsed: {format_time(elapsed_time)} | ETR: {format_time(etr)}")
-        
+                # Write to CSV
+                # We only write the header if it's the very first chunk AND header=True was requested
+                write_header = header if first_chunk else False
+                
+                merged_chunk.to_csv(f_out, sep=sep, index=False, header=write_header, encoding='utf-8')
+                
+                first_chunk = False
+                window['-STATUS-'].update(f'Merged chunk batch {i+1}...')
+                
         window['-STATUS-'].update('Completed successfully!')
-        window['-PROGRESS-'].update(total_size)
-        window['-TIME-'].update(f"Total Time: {format_time(time.time() - start_time)}")
-        psg.popup("Success!", f"Successfully concatenated files along rows to:\n'{output_file}'.")
+        window['-PROGRESS-'].update(100)
+        psg.popup("Success!", f"Files merged side-by-side to:\n'{output_file}'")
         return True
 
+    except ValueError as e:
+        # This catches the specific error if files have different row counts
+        psg.popup_error(f"Merge Error: Files likely have different row counts.\nDetails: {e}")
+        return False
     except Exception as e:
         psg.popup_error(f"An unexpected error occurred: {e}")
         return False
-

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import multiprocessing as mp
 import time
-import threading  # <-- Only necessary import added
+import threading  
 from functools import partial
 from math import ceil
 import base64
@@ -30,10 +30,18 @@ sys.path.append(resource_path("feature_extractor"))
 sys.path.append(resource_path("feature_extractor/NIST/"))
 sys.path.append(resource_path("feature_extractor/HEDGE_specials/"))
 sys.path.append(resource_path("feature_extractor/BLFCP_specials/"))
+sys.path.append(resource_path("feature_extractor/OTHERS/"))
 sys.path.append(resource_path("combine_csv/"))
 # --- END of PATH FIX ---
 
+# --- GLOBAL CANDIDATE INITIALIZATION ---
+enc_candidates_path = resource_path('.\\feature_extractor\\OTHERS\\enc_lcss_centers.csv')
+enc_candidates = np.loadtxt(enc_candidates_path, delimiter=',', dtype=np.uint8)
 
+unenc_candidates_path = resource_path('.\\feature_extractor\\OTHERS\\unenc_lcss_centers.csv')
+unenc_candidates = np.loadtxt(unenc_candidates_path, delimiter=',', dtype=np.uint8)
+# unenc_candidates = load_unenc_candidates() # You'll need to define and call this if you implement feature 26
+# ---------------------------------------
 
 from extract_whole_folder_fragments import extract_whole_folder_fragments
 from extract_each_file_fragments import extract_random_fragments_file
@@ -55,6 +63,7 @@ from sp800_22_binary_matrix_rank_test import binary_matrix_rank_test
 from sp800_22_linear_complexity_test import linear_complexity_test
 from HEDGE_fspecials import *
 from BLFCP_fspecials import *
+from others import *
 from combine import *
 
 # Your original theme and settings, untouched
@@ -298,10 +307,30 @@ def button_4():
     
     mid_column_layout = [[hedge_frame],[blfcp_frame]]
     mid_column = psg.Column(mid_column_layout)
+    others_layout = [
+        [psg.Checkbox("23_shannon_entropy", key="23_shannon_entropy")],
+        [psg.Checkbox("24_kl_divergence_from_uniform", key="24_kl_divergence_from_uniform")],
+        [psg.Checkbox("25_average_normalized_lcs_with_enc_candidates", key="25_average_normalized_lcs_with_enc_candidates")],
+        [psg.Checkbox("26_average_normalized_lcs_with_unenc_candidates", key="26_average_normalized_lcs_with_unenc_candidates")],
+        [psg.Checkbox("27_average_euclidean_distance_with_enc_candidates", key="27_average_euclidean_distance_with_enc_candidates")],
+        [psg.Checkbox("28_average_euclidean_distance_with_unenc_candidates", key="28_average_euclidean_distance_with_unenc_candidates")],
+        [psg.Checkbox("29_hcv", key="29_hcv")],
+        [psg.Checkbox("30_bpfv", key="30_bpfv")],
+
+    ]
+    others_frame = psg.Frame('others Features',
+        [[psg.Column(others_layout, element_justification='left')]]
+    )
+    AFRL_layout = [[psg.Checkbox("31_lnv", key="31_lnv")],]
+    AFRL_frame = psg.Frame('AFRL Features',
+        [[psg.Column(AFRL_layout, element_justification='left')]]
+    )
+    right_column_layout = [[others_frame], [AFRL_frame]]
+    right_column = psg.Column(right_column_layout)
     # Arrange the frames in the final layout
     layout = [
         [psg.Push(), psg.Text("choose features you want to extract: "), psg.Push()],
-        [nist_frame, psg.Push(), mid_column, psg.Push()],
+        [nist_frame, psg.Push(), mid_column, psg.Push(), right_column],
         [psg.Text("cpu usage: ", pad=((0,0),(10,0))), psg.Slider((10,100), default_value=80, orientation='horizontal', key="-cpu-",expand_x=True)],
         [psg.Push(), psg.Ok(size=(4,1)), psg.Push()]
     ]
@@ -425,7 +454,15 @@ def process_row(row, dic_checklist):
     if dic_checklist["20_discrete_fourier_transform"]==True: all_features.extend(discrete_fourier_transform(row)) #10 features
     if dic_checklist["21_lempel_ziv_complexity"]==True: all_features.append(lempel_ziv_complexity(row))
     if dic_checklist["22_monte_carlo_pi_approximation"]==True: all_features.append(monte_carlo_pi_approximation(row))
-    
+    if dic_checklist["23_shannon_entropy"]==True: all_features.append(shannon_entropy(row))
+    if dic_checklist["24_kl_divergence_from_uniform"]==True: all_features.append(kl_divergence_from_uniform(row))
+    if dic_checklist["25_average_normalized_lcs_with_enc_candidates"]==True: all_features.append(average_normalized_lcs(row, enc_candidates))
+    if dic_checklist["26_average_normalized_lcs_with_unenc_candidates"]==True: all_features.append(average_normalized_lcs(row, unenc_candidates))
+    if dic_checklist["27_average_euclidean_distance_with_enc_candidates"]==True: all_features.append(average_euclidean_distance(row, enc_candidates))
+    if dic_checklist["28_average_euclidean_distance_with_unenc_candidates"]==True: all_features.append(average_euclidean_distance(row, unenc_candidates))
+    if dic_checklist["29_hcv"]==True: all_features.append(hcv(row))
+    if dic_checklist["30_bpfv"]==True: all_features.append(bpfv(row))
+    if dic_checklist["31_lnv"]==True: all_features.append(lnv(row))
     return all_features
 
 def generate_feature_headers(dic_checklist):
@@ -526,7 +563,24 @@ def generate_feature_headers(dic_checklist):
         headers.append('21_lempel_ziv_complexity')
     if dic_checklist.get("22_monte_carlo_pi_approximation"):
         headers.append('22_monte_carlo_pi_approximation')
-
+    if dic_checklist.get("23_shannon_entropy"):
+        headers.append('23_shannon_entropy')
+    if dic_checklist.get("24_kl_divergence_from_uniform"):
+        headers.append('24_kl_divergence_from_uniform')
+    if dic_checklist.get("25_average_normalized_lcs_with_enc_candidates"):
+        headers.append('25_average_normalized_lcs_with_enc_candidates')
+    if dic_checklist.get("26_average_normalized_lcs_with_unenc_candidates"):
+        headers.append('26_average_normalized_lcs_with_unenc_candidates')
+    if dic_checklist.get("27_average_euclidean_distance_with_enc_candidates"):
+        headers.append('27_average_euclidean_distance_with_enc_candidates')
+    if dic_checklist.get("28_average_euclidean_distance_with_unenc_candidates"):
+        headers.append('28_average_euclidean_distance_with_unenc_candidates')
+    if dic_checklist.get("29_hcv"):
+        headers.append('29_hcv')
+    if dic_checklist.get("30_bpfv"):
+        headers.append('30_bpfv')
+    if dic_checklist.get("31_lnv"):
+        headers.append('31_lnv')
     return headers
 
 def parallel_feature_extraction_large_file(window, input_file_path, output_file_path, dic_checklist, cancel_event, chunk_size=100):
@@ -654,9 +708,12 @@ def button_6():
             window_2.close()
             window.close()
     window.close()
-# Your original main execution block, untouched (with mp.freeze_support() added for safety)
+
 if __name__ == '__main__':
     mp.freeze_support() # Recommended for multiprocessing, especially for executables
+    mp.set_start_method('spawn', force=True)  # Windows requirement
+
+
     menu_def = [
     ['&options', ['&guidance', '&about']],
     ]
