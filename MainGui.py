@@ -35,21 +35,7 @@ sys.path.append(resource_path("combine_csv"))
 from extract_whole_folder_fragments import extract_whole_folder_fragments
 from extract_each_file_fragments import extract_random_fragments_file
 from extract_each_file_fragments import extract_random_fragments_file_random_pad
-from sp800_22_longest_run_ones_in_a_block_test import longest_run_ones_in_a_block_test
-from sp800_22_overlapping_template_matching_test import overlapping_template_matching_test
-from sp800_22_approximate_entropy_test import approximate_entropy_test
-from sp800_22_frequency_within_block_test import frequency_within_block_test
-from sp800_22_runs_test import runs_test
-from sp800_22_random_excursion_variant_test import random_excursion_variant_test
-from sp800_22_maurers_universal_test import maurers_universal_test
-from sp800_22_cumulative_sums_test import cumulative_sums_test
-from sp800_22_non_overlapping_template_matching_test import non_overlapping_template_matching_test
-from sp800_22_monobit_test import monobit_test
-from sp800_22_random_excursion_test import random_excursion_test
-from sp800_22_dft_test import dft_test
-from sp800_22_serial_test import serial_test
-from sp800_22_binary_matrix_rank_test import binary_matrix_rank_test
-from sp800_22_linear_complexity_test import linear_complexity_test
+from nist_suite import *
 from HEDGE_fspecials import *
 from BLFCP_fspecials import *
 from SOTA_fspecials import *
@@ -156,7 +142,7 @@ def polish_window_widgets(win, hover_map=None):
 # FEATURE PRESETS & DEFINITIONS (NIST + HEDGE + BLFCP + SOTA + AFRL)
 # =====================================================================
 ALL_FEATURE_KEYS = [
-    # NIST SP 800-22 (1..15)
+    # NIST SP 800-22 (1..15 — All 15 Enabled & Length-Adaptive!)
     '1_1_longest_run_ones_in_a_block_test_success', '1_2_longest_run_ones_in_a_block_test_pvalue',
     '2_1_overlapping_template_matching_test_success', '2_2_overlapping_template_matching_test_pvalue',
     '3_1_approximate_entropy_test_success', '3_2_approximate_entropy_test_pvalue',
@@ -197,11 +183,7 @@ ALL_FEATURE_KEYS = [
     '36_afrl_combined_success',
 ]
 
-DISABLED_NIST_KEYS = {
-    '2_1_overlapping_template_matching_test_success', '2_2_overlapping_template_matching_test_pvalue',
-    '7_1_maurers_universal_test_success', '7_2_maurers_universal_test_pvalue',
-    '15_1_linear_complexity_test_success', '15_2_linear_complexity_test_pvalue'
-}
+DISABLED_NIST_KEYS = set()
 
 PRESET_HEDGE = {
     '3_1_approximate_entropy_test_success',
@@ -267,15 +249,15 @@ def set_window_icon(win):
 
 def show_guidance_modal():
     guide_lines = [
-        "WORKFLOW OVERVIEW",
+        "WORKFLOW OVERVIEW (UNIVERSAL ANY-LENGTH SUPPORT)",
         "────────────────────────────────────────────────────────────",
         "1. Fragment Extraction:",
         "   Select a dataset folder and extract fixed-size byte fragments into a CSV file.",
-        "   • 4096-byte fragments are strongly recommended as the standard benchmark size.",
+        "   • Supports ANY fragment length (e.g., 256B, 512B, 1024B, 2048B, 4096B, 8192B, 64KB+).",
         "",
         "2. Feature Extraction:",
-        "   Load the extracted fragment CSV, select individual features or benchmark presets,",
-        "   configure CPU core allocation, and export the computed feature matrix.",
+        "   All 36 statistical, cryptographic, Markov, and wavelet feature suites automatically",
+        "   adapt their block sizes, degrees of freedom, and thresholds to the input fragment length.",
         "   • Features ending with '_success' are binary indicators (1 = Encrypted/Random, 0 = Unencrypted).",
         "",
         "BENCHMARK FEATURE PRESETS",
@@ -284,7 +266,7 @@ def show_guidance_modal():
         "  - 3_1_approximate_entropy_test_success",
         "  - 4_1_frequency_within_block_test_success",
         "  - 5_1_runs_test_success",
-        "  - 35_1_local_nibbles_variance_success (Threshold <= 46.98)",
+        "  - 35_1_local_nibbles_variance_success (Length-adaptive LNV threshold)",
         "  - 35_2_local_nibbles_variance_stat (Sliding-window 4-bit nibble Chi2 variance)",
         "  - 36_afrl_combined_success (Ensemble decision: AppEn & BlockFreq & Runs & LNV)",
         "",
@@ -292,17 +274,17 @@ def show_guidance_modal():
         "  - 3_1_approximate_entropy_test_success",
         "  - 4_1_frequency_within_block_test_success",
         "  - 8_1_cumulative_sums_test_success",
-        "  - 16_chi_test_absolute_success",
+        "  - 16_chi_test_absolute_success (Exact HEDGE + finite-sample multinomial bands)",
         "  - 17_chi_test_confidence_success",
         "",
         "• EnCoD Suite:",
-        "  - 19_byte_frequency_distribution (256 features)",
+        "  - 19_byte_frequency_distribution (256 normalized byte frequencies)",
         "",
         "• BLFCP Full Suite:",
         "  - 18_1_chi2_uniform_stat & 18_2_chi2_uniform_pvalue",
         "  - 19_byte_frequency_distribution (256 features)",
-        "  - 20_discrete_fourier_transform (10 features)",
-        "  - 21_lempel_ziv_complexity",
+        "  - 20_discrete_fourier_transform (10 normalized spectral features)",
+        "  - 21_lempel_ziv_complexity (Kaspar-Schuster length-normalized LZ76)",
         "  - 22_monte_carlo_pi_approximation",
         "",
         "• SOTA 2024–2026 Multi-Modal & Markov Suite (26 columns):",
@@ -310,7 +292,7 @@ def show_guidance_modal():
         "  - 24_ks_uniformity & 25_wasserstein_distance_uniform",
         "  - 26_index_of_coincidence & 27_generalized_entropies (Rényi H2, Min-Entropy, Tsallis)",
         "  - 28_serial_and_lag_autocorr (SCC + Lags 2, 4, 8)",
-        "  - 29_markov_bigram_metrics (Bigram Entropy, Conditional Entropy, Mutual Info, Unique Ratio)",
+        "  - 29_markov_bigram_metrics (Bigram Entropy, Conditional Entropy, Mutual Info, Birthday Ratio)",
         "  - 30_byte_difference_stats & 31_recompression_ratios (zlib, bz2, lzma)",
         "  - 32_haar_wavelet_detail_ratio, 33_spectral_flatness_wiener & 34_structural_run_and_ascii"
     ]
@@ -337,13 +319,13 @@ def show_guidance_modal():
 
 def show_about_modal():
     desc_text = chr(10).join([
-        "High-performance fragment slicer and statistical feature extraction suite",
+        "Universal any-length fragment slicer and statistical feature extraction suite",
         "for encrypted vs. unencrypted data classification (NIST SP 800-22, AFRL, HEDGE, BLFCP, EnCoD, SOTA 2026)."
     ])
     layout = [
         [psg.Column([
             [psg.Text("🛡️ Enc Fragment Extractor", font=FONT_TITLE, text_color=ACCENT_EMERALD, background_color=BG_CARD)],
-            [psg.Text("Version 0.9.5 — Studio Edition", font=FONT_BOLD, text_color=TEXT_MUTED, background_color=BG_CARD)],
+            [psg.Text("Version 1.0.0 — Universal Adaptive Studio Edition", font=FONT_BOLD, text_color=TEXT_MUTED, background_color=BG_CARD)],
             [psg.HorizontalSeparator(color=BORDER_SUBTLE)],
             [psg.Text(desc_text, font=('Segoe UI', 10), text_color=TEXT_PRIMARY, background_color=BG_CARD)],
             [psg.Text("Created by: Alireza Aliaskari Hosseinabadi", font=FONT_BOLD, background_color=BG_CARD, pad=((0, 0), (10, 4)))],
@@ -397,12 +379,8 @@ def create_progress_modal(title, subtitle):
 # CORE HELPER & WORKER FUNCTIONS
 # =====================================================================
 def byte_to_bit(row):
-    bit_list = [format(int(num), '08b') for num in row]
-    bit_s_list = []
-    for bit_8 in bit_list:
-        for bit in bit_8:
-            bit_s_list.append(int(bit))
-    return bit_s_list
+    arr = np.asarray(row, dtype=np.uint8)
+    return np.unpackbits(arr)
 
 
 def format_time(seconds):
@@ -416,6 +394,8 @@ def format_time(seconds):
 
 def process_row(row, dic_checklist):
     row_np = np.asarray(row, dtype=np.uint8)
+    frag_len = row_np.size
+
     bitn_list = [
         '1_1_longest_run_ones_in_a_block_test_success', '1_2_longest_run_ones_in_a_block_test_pvalue',
         '2_1_overlapping_template_matching_test_success', '2_2_overlapping_template_matching_test_pvalue',
@@ -439,7 +419,7 @@ def process_row(row, dic_checklist):
 
     all_features = []
 
-    # --- NIST SP 800-22 Features (1..15) ---
+    # --- NIST SP 800-22 Features (1..15 — Universal Length-Adaptive) ---
     if dic_checklist.get('1_1_longest_run_ones_in_a_block_test_success') or dic_checklist.get('1_2_longest_run_ones_in_a_block_test_pvalue'):
         success, pval, _ = longest_run_ones_in_a_block_test(bits)
         if dic_checklist.get('1_1_longest_run_ones_in_a_block_test_success'): all_features.append(1 if success else 0)
@@ -465,6 +445,10 @@ def process_row(row, dic_checklist):
         if dic_checklist.get('6_1_random_excursion_variant_test_success'): all_features.append(1 if success else 0)
         if dic_checklist.get('6_2_random_excursion_variant_test_pvalue'):
             for pv in pval[0]: all_features.append(pv)
+    if dic_checklist.get('7_1_maurers_universal_test_success') or dic_checklist.get('7_2_maurers_universal_test_pvalue'):
+        success, pval, _ = maurers_universal_test(bits)
+        if dic_checklist.get('7_1_maurers_universal_test_success'): all_features.append(1 if success else 0)
+        if dic_checklist.get('7_2_maurers_universal_test_pvalue'): all_features.append(pval)
     if dic_checklist.get('8_1_cumulative_sums_test_success') or dic_checklist.get('8_2_cumulative_sums_test_pvalue'):
         success, _, *pval = cumulative_sums_test(bits)
         if dic_checklist.get('8_1_cumulative_sums_test_success'): all_features.append(1 if success else 0)
@@ -493,25 +477,29 @@ def process_row(row, dic_checklist):
         if dic_checklist.get('13_2_serial_test_pvalue'):
             for pv in pval[0]: all_features.append(pv)
     if dic_checklist.get('14_1_binary_matrix_rank_test_success') or dic_checklist.get('14_2_binary_matrix_rank_test_pvalue'):
-        success, pval, _ = binary_matrix_rank_test(bits, M=28, Q=28)
+        success, pval, _ = binary_matrix_rank_test(bits)
         if dic_checklist.get('14_1_binary_matrix_rank_test_success'): all_features.append(1 if success else 0)
         if dic_checklist.get('14_2_binary_matrix_rank_test_pvalue'): all_features.append(pval)
+    if dic_checklist.get('15_1_linear_complexity_test_success') or dic_checklist.get('15_2_linear_complexity_test_pvalue'):
+        success, pval, _ = linear_complexity_test(bits)
+        if dic_checklist.get('15_1_linear_complexity_test_success'): all_features.append(1 if success else 0)
+        if dic_checklist.get('15_2_linear_complexity_test_pvalue'): all_features.append(pval)
 
-    # --- HEDGE Chi-Square Features (16..18) ---
+    # --- HEDGE Chi-Square Features (16..18 — Dynamic Length L) ---
     if dic_checklist.get("16_chi_test_absolute_success") or dic_checklist.get("17_chi_test_confidence_success") or dic_checklist.get("18_1_chi2_uniform_stat") or dic_checklist.get("18_2_chi2_uniform_pvalue"):
-        chi2_stat, p_value = chi2_uniform(row_np, Length=len(row_np))
-        if dic_checklist.get("16_chi_test_absolute_success"): all_features.append(chi_test_absolute(chi2_stat, length=len(row_np)))
+        chi2_stat, p_value = chi2_uniform(row_np, Length=frag_len)
+        if dic_checklist.get("16_chi_test_absolute_success"): all_features.append(chi_test_absolute(chi2_stat, length=frag_len))
         if dic_checklist.get("17_chi_test_confidence_success"): all_features.append(chi_test_confidence(p_value))
         if dic_checklist.get("18_1_chi2_uniform_stat"): all_features.append(chi2_stat)
         if dic_checklist.get("18_2_chi2_uniform_pvalue"): all_features.append(p_value)
 
-    # --- BLFCP & EnCoD Features (19..22) ---
+    # --- BLFCP & EnCoD Features (19..22 — Scale-Normalized) ---
     if dic_checklist.get("19_byte_frequency_distribution"): all_features.extend(byte_frequency_distribution(row_np))
     if dic_checklist.get("20_discrete_fourier_transform"): all_features.extend(discrete_fourier_transform(row_np))
     if dic_checklist.get("21_lempel_ziv_complexity"): all_features.append(lempel_ziv_complexity(row_np))
     if dic_checklist.get("22_monte_carlo_pi_approximation"): all_features.append(monte_carlo_pi_approximation(row_np))
 
-    # --- SOTA 2024-2026 Multi-Modal, Markov & Spectral Features (23..34) ---
+    # --- SOTA 2024-2026 Multi-Modal, Markov & Spectral Features (23..34 — Scale-Invariant) ---
     if dic_checklist.get("23_byte_moments"): all_features.extend(byte_statistical_moments(row_np))
     if dic_checklist.get("24_ks_uniformity"): all_features.extend(ks_uniformity_test(row_np))
     if dic_checklist.get("25_wasserstein_distance_uniform"): all_features.append(wasserstein_uniform_distance(row_np))
@@ -525,7 +513,7 @@ def process_row(row, dic_checklist):
     if dic_checklist.get("33_spectral_flatness_wiener"): all_features.append(spectral_flatness_measure(row_np))
     if dic_checklist.get("34_structural_run_and_ascii"): all_features.extend(structural_run_and_ascii(row_np))
 
-    # --- AFRL Custom Suite (35..36) ---
+    # --- AFRL Custom Suite (35..36 — Adaptive Window & Threshold) ---
     if dic_checklist.get("35_1_local_nibbles_variance_success") or dic_checklist.get("35_2_local_nibbles_variance_stat"):
         lnv_success, lnv_stat, _ = local_nibbles_variance(row_np)
         if dic_checklist.get("35_1_local_nibbles_variance_success"): all_features.append(1 if lnv_success else 0)
@@ -552,6 +540,8 @@ def generate_feature_headers(dic_checklist):
     if dic_checklist.get('6_1_random_excursion_variant_test_success'): headers.append('6_1_random_excursion_variant_test_success')
     if dic_checklist.get('6_2_random_excursion_variant_test_pvalue'):
         for i in range(18): headers.append(f'6_2_random_excursion_variant_test_pvalue_{i}')
+    if dic_checklist.get('7_1_maurers_universal_test_success'): headers.append('7_1_maurers_universal_test_success')
+    if dic_checklist.get('7_2_maurers_universal_test_pvalue'): headers.append('7_2_maurers_universal_test_pvalue')
     if dic_checklist.get('8_1_cumulative_sums_test_success'): headers.append('8_1_cumulative_sums_test_success')
     if dic_checklist.get('8_2_cumulative_sums_test_pvalue'):
         for i in range(2): headers.append(f'8_2_cumulative_sums_test_pvalue_{i}')
@@ -733,8 +723,8 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
     nistf_list_layout = [
         [psg.Checkbox("1.1 Longest Run of Ones (Success)", key="1_1_longest_run_ones_in_a_block_test_success", background_color=BG_CARD)],
         [psg.Checkbox("1.2 Longest Run of Ones (p-value)", key="1_2_longest_run_ones_in_a_block_test_pvalue", background_color=BG_CARD)],
-        [psg.Checkbox("2.1 Overlapping Template (Success) [>1M bits]", key="2_1_overlapping_template_matching_test_success", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
-        [psg.Checkbox("2.2 Overlapping Template (p-value) [>1M bits]", key="2_2_overlapping_template_matching_test_pvalue", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
+        [psg.Checkbox("2.1 Overlapping Template (Success) [Adaptive]", key="2_1_overlapping_template_matching_test_success", background_color=BG_CARD)],
+        [psg.Checkbox("2.2 Overlapping Template (p-value) [Adaptive]", key="2_2_overlapping_template_matching_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("3.1 Approximate Entropy (Success)", key="3_1_approximate_entropy_test_success", background_color=BG_CARD)],
         [psg.Checkbox("3.2 Approximate Entropy (p-value)", key="3_2_approximate_entropy_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("4.1 Frequency Within Block (Success)", key="4_1_frequency_within_block_test_success", background_color=BG_CARD)],
@@ -743,8 +733,8 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         [psg.Checkbox("5.2 Runs Test (p-value)", key="5_2_runs_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("6.1 Random Excursion Variant (Success)", key="6_1_random_excursion_variant_test_success", background_color=BG_CARD)],
         [psg.Checkbox("6.2 Random Excursion Variant (18 p-values)", key="6_2_random_excursion_variant_test_pvalue", background_color=BG_CARD)],
-        [psg.Checkbox("7.1 Maurer's Universal (Success) [>387K bits]", key="7_1_maurers_universal_test_success", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
-        [psg.Checkbox("7.2 Maurer's Universal (p-value) [>387K bits]", key="7_2_maurers_universal_test_pvalue", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
+        [psg.Checkbox("7.1 Maurer's Universal (Success) [Adaptive]", key="7_1_maurers_universal_test_success", background_color=BG_CARD)],
+        [psg.Checkbox("7.2 Maurer's Universal (p-value) [Adaptive]", key="7_2_maurers_universal_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("8.1 Cumulative Sums (Success)", key="8_1_cumulative_sums_test_success", background_color=BG_CARD)],
         [psg.Checkbox("8.2 Cumulative Sums (2 p-values)", key="8_2_cumulative_sums_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("9.1 Non-Overlapping Template (Success)", key="9_1_non_overlapping_template_matching_test_success", background_color=BG_CARD)],
@@ -757,10 +747,10 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         [psg.Checkbox("12.2 Discrete Fourier Transform (p-value)", key="12_2_dft_test_pvalue", background_color=BG_CARD)],
         [psg.Checkbox("13.1 Serial Test (Success)", key="13_1_serial_test_success", background_color=BG_CARD)],
         [psg.Checkbox("13.2 Serial Test (2 p-values)", key="13_2_serial_test_pvalue", background_color=BG_CARD)],
-        [psg.Checkbox("14.1 Binary Matrix Rank (Success)", key="14_1_binary_matrix_rank_test_success", background_color=BG_CARD)],
-        [psg.Checkbox("14.2 Binary Matrix Rank (p-value)", key="14_2_binary_matrix_rank_test_pvalue", background_color=BG_CARD)],
-        [psg.Checkbox("15.1 Linear Complexity (Success) [>1M bits]", key="15_1_linear_complexity_test_success", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
-        [psg.Checkbox("15.2 Linear Complexity (p-value) [>1M bits]", key="15_2_linear_complexity_test_pvalue", disabled=True, background_color=BG_CARD, text_color=TEXT_MUTED)],
+        [psg.Checkbox("14.1 Binary Matrix Rank (Success) [Adaptive]", key="14_1_binary_matrix_rank_test_success", background_color=BG_CARD)],
+        [psg.Checkbox("14.2 Binary Matrix Rank (p-value) [Adaptive]", key="14_2_binary_matrix_rank_test_pvalue", background_color=BG_CARD)],
+        [psg.Checkbox("15.1 Linear Complexity (Success) [Adaptive]", key="15_1_linear_complexity_test_success", background_color=BG_CARD)],
+        [psg.Checkbox("15.2 Linear Complexity (p-value) [Adaptive]", key="15_2_linear_complexity_test_pvalue", background_color=BG_CARD)],
     ]
 
     hedge_fs_layout = [
@@ -773,7 +763,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
     blfcp_layout = [
         [psg.Checkbox("19. Byte Frequency Distribution (256 cols)", key="19_byte_frequency_distribution", background_color=BG_CARD)],
         [psg.Checkbox("20. Discrete Fourier Transform (10 cols)", key="20_discrete_fourier_transform", background_color=BG_CARD)],
-        [psg.Checkbox("21. Lempel-Ziv Complexity (LZ76)", key="21_lempel_ziv_complexity", background_color=BG_CARD)],
+        [psg.Checkbox("21. Lempel-Ziv Complexity (Normalized LZ76)", key="21_lempel_ziv_complexity", background_color=BG_CARD)],
         [psg.Checkbox("22. Monte Carlo Pi Approximation", key="22_monte_carlo_pi_approximation", background_color=BG_CARD)],
     ]
 
@@ -789,17 +779,17 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         [psg.Checkbox("31. Multi-Algo Re-Compression (zlib/bz2/lzma) [3]", key="31_recompression_ratios", background_color=BG_CARD)],
         [psg.Checkbox("32. 1-Level Haar Wavelet Detail Energy Ratio", key="32_haar_wavelet_detail_ratio", background_color=BG_CARD)],
         [psg.Checkbox("33. Spectral Flatness Measure (Wiener Entropy)", key="33_spectral_flatness_wiener", background_color=BG_CARD)],
-        [psg.Checkbox("34. Max Byte Run & Printable ASCII Ratio [2]", key="34_structural_run_and_ascii", background_color=BG_CARD)],
+        [psg.Checkbox("34. Norm Max Byte Run & Printable ASCII Ratio [2]", key="34_structural_run_and_ascii", background_color=BG_CARD)],
     ]
 
     afrl_layout = [
-        [psg.Checkbox("35.1 Local Nibbles Variance (Success <= 46.98)", key="35_1_local_nibbles_variance_success", background_color=BG_CARD)],
+        [psg.Checkbox("35.1 Local Nibbles Variance (Adaptive Success)", key="35_1_local_nibbles_variance_success", background_color=BG_CARD)],
         [psg.Checkbox("35.2 Local Nibbles Variance (Variance Stat)", key="35_2_local_nibbles_variance_stat", background_color=BG_CARD)],
         [psg.Checkbox("36. AFRL Combined Classifier (AppEn + Block + Runs + LNV)", key="36_afrl_combined_success", background_color=BG_CARD)],
     ]
 
     nist_frame = psg.Frame(
-        ' NIST SP 800-22 Statistical Suite ',
+        ' NIST SP 800-22 Statistical Suite (All 15 Adaptive) ',
         [[psg.Column(nistf_list_layout, scrollable=True, vertical_scroll_only=True, size=(375, 480), background_color=BG_CARD)]],
         background_color=BG_CARD, title_color=ACCENT_EMERALD, font=FONT_SECTION, pad=(6, 6), relief=psg.RELIEF_FLAT
     )
@@ -869,7 +859,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
     layout = [
         [psg.Text("⚡ Statistical & Cryptographic Feature Extraction Studio", font=FONT_TITLE, text_color=ACCENT_EMERALD),
          psg.Push(),
-         psg.Text("● Calibrated for 4096-byte fragments", font=FONT_BOLD, text_color=ACCENT_AMBER)],
+         psg.Text("● Universal Any-Length Fragment Mode", font=FONT_BOLD, text_color=ACCENT_EMERALD)],
         [preset_bar],
         [nist_frame, mid_column, right_column],
         [io_bar],
@@ -1053,7 +1043,7 @@ def build_main_window():
          psg.Push(background_color=BG_CARD),
          psg.Button("📖  Guidance & Presets", key="-NAV-GUIDE-", button_color=BTN_SECONDARY, font=FONT_BOLD, pad=(6, 4)),
          psg.Button("ℹ️  About", key="-NAV-ABOUT-", button_color=BTN_SECONDARY, font=FONT_BOLD, pad=(6, 4))],
-        [psg.Text("Cryptographic Fragment Slicer, Statistical Randomness Suite (NIST SP 800-22 / AFRL / HEDGE / BLFCP / SOTA '26) & Dataset Merger",
+        [psg.Text("Universal Any-Length Fragment Slicer, Statistical Randomness Suite (NIST SP 800-22 / AFRL / HEDGE / BLFCP / SOTA '26) & Dataset Merger",
                   font=FONT_SUBTITLE, text_color=TEXT_MUTED, background_color=BG_CARD)]
     ], background_color=BG_CARD, pad=((0, 0), (0, 10)), expand_x=True)
 
@@ -1090,7 +1080,7 @@ def build_main_window():
 
             [psg.Text("Fragment Size (Bytes):", size=(18, 1), background_color=BG_CARD, font=FONT_BOLD),
              psg.Input("4096", key="-FRAG-SIZE-", size=(16, 1)),
-             psg.Text("Recommended: 4096 bytes (Standard page size)", text_color=TEXT_MUTED, background_color=BG_CARD, font=FONT_SUBTITLE)],
+             psg.Text("Any size supported (e.g., 256, 512, 1024, 2048, 4096, 8192+)", text_color=TEXT_MUTED, background_color=BG_CARD, font=FONT_SUBTITLE)],
 
             [psg.Text("Total Fragments (N):", key="-FRAG-COUNT-LBL-", size=(18, 1), background_color=BG_CARD, font=FONT_BOLD),
              psg.Input("1000", key="-FRAG-COUNT-", size=(16, 1)),
@@ -1113,13 +1103,13 @@ def build_main_window():
     # VIEW 2: FEATURE EXTRACTOR
     # -----------------------------------------------------------------
     notice_text = chr(10).join([
-        "All statistical thresholds (HEDGE Chi-Square bands, Binary Matrix Rank 28×28, AFRL LNV & Spectral suites)",
-        "are calibrated and optimized for 4096-byte (32,768-bit) fragments."
+        "All 36 statistical suites (all 15 NIST SP 800-22 tests, HEDGE, BLFCP, AFRL LNV, and SOTA 2026)",
+        "dynamically adapt their block dimensions, degrees of freedom, and thresholds to ANY fragment length."
     ])
     view_feat_layout = [
-        [psg.Frame(' ⚠️ Benchmark Optimization Notice ', [
-            [psg.Text(notice_text, text_color=ACCENT_AMBER, background_color=BG_CARD, font=FONT_BOLD, pad=(8, 6))]
-        ], background_color=BG_CARD, title_color=ACCENT_AMBER, font=FONT_SECTION, expand_x=True, pad=(6, 8), relief=psg.RELIEF_FLAT)],
+        [psg.Frame(' ✅ Universal Any-Length Adaptive Engine ', [
+            [psg.Text(notice_text, text_color=ACCENT_EMERALD, background_color=BG_CARD, font=FONT_BOLD, pad=(8, 6))]
+        ], background_color=BG_CARD, title_color=ACCENT_EMERALD, font=FONT_SECTION, expand_x=True, pad=(6, 8), relief=psg.RELIEF_FLAT)],
 
         [psg.Frame(' Quick Launch Configuration (Optional Pre-fill) ', [
             [psg.Text("Input Fragments CSV:", size=(18, 1), background_color=BG_CARD, font=FONT_BOLD),
@@ -1185,10 +1175,10 @@ def build_main_window():
     col_view_3 = psg.Column(view_combine_layout, key="-VIEW-3-", visible=False, expand_x=True, expand_y=True, pad=(0, 0))
 
     status_footer = psg.Column([
-        [psg.Text(f"● System Ready   │   Detected {mp.cpu_count()} Logical CPU Cores   │   36 Feature Suites Loaded (NIST + AFRL + SOTA)",
+        [psg.Text(f"● System Ready   │   Detected {mp.cpu_count()} Logical CPU Cores   │   36 Universal Any-Length Suites Active",
                   font=FONT_SUBTITLE, text_color=TEXT_MUTED, background_color=BG_CARD),
          psg.Push(background_color=BG_CARD),
-         psg.Text("Studio v0.9.5", font=FONT_SUBTITLE, text_color=ACCENT_EMERALD, background_color=BG_CARD)]
+         psg.Text("Studio v1.0.0", font=FONT_SUBTITLE, text_color=ACCENT_EMERALD, background_color=BG_CARD)]
     ], background_color=BG_CARD, pad=((0, 0), (10, 0)), expand_x=True)
 
     main_layout = [
@@ -1199,7 +1189,7 @@ def build_main_window():
     ]
 
     window = psg.Window(
-        'Enc Fragment Extractor — Studio Edition',
+        'Enc Fragment Extractor — Universal Studio Edition',
         main_layout,
         size=(880, 660),
         resizable=True,
