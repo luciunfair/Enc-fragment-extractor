@@ -1,26 +1,33 @@
 # AFRL: Encrypted File Fragment Detection & Feature Extraction Studio
 
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
+[![Platform: Windows | Linux | macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D4?style=for-the-badge)](https://github.com/)
+[![Latest Release](https://img.shields.io/badge/Download-Executable%20(.exe)-10B981?style=for-the-badge&logo=windows)](https://github.com/luciunfair/AFRL_Studio/releases/tag/v1.1.0)
+
 **AFRL Studio** is an open-source software suite and GUI framework designed for distinguishing encrypted file fragments from high-entropy unencrypted data (such as compressed archives, multimedia streams, and packed executables). Based on research from the **University of Tehran**, AFRL combines real-time statistical hypothesis testing, local nibble variance analysis, and comprehensive feature extraction across a high-performance multi-core pipeline.
+
+---
 
 ## Table of Contents
 
-* [Overview & Research Background](#overview--research-background)
-* [Key Features](#key-features)
-* [Software Architecture & Pipeline](#software-architecture--pipeline)
-* [GUI Screenshots Gallery](#gui-screenshots-gallery)
-* [Installation & Setup](#installation--setup)
-  * [Prerequisites](#prerequisites)
-  * [Option A: Running from Source](#option-a-running-from-source)
-  * [Option B: Building Standalone Executable (.exe)](#option-b-building-standalone-executable-exe)
-* [4-Stage Workflow Guide & Examples](#4-stage-workflow-guide--examples)
-  * [Stage 1: Fragment Extractor](#stage-1-fragment-extractor)
-  * [Stage 2: Feature Studio (36 Suites / 359 Columns)](#stage-2-feature-studio-36-suites--359-columns)
-  * [Stage 3: Detection Methods (AFRL & HEDGE)](#stage-3-detection-methods-afrl--hedge)
-  * [Stage 4: CSV Dataset Combiner](#stage-4-csv-dataset-combiner)
-* [Sample Dataset & Performance Benchmark](#sample-dataset--performance-benchmark)
-* [Directory Structure](#directory-structure)
-* [Citation](#citation)
-* [License](#license)
+- [Overview & Research Background](#overview--research-background)
+- [Key Features](#key-features)
+- [Software Architecture & Pipeline](#software-architecture--pipeline)
+- [GUI Screenshots Gallery](#gui-screenshots-gallery)
+- [Installation & Direct EXE Download](#installation--direct-exe-download)
+  - [Option A: Direct Executable Download (Recommended)](#option-a-direct-executable-download-recommended)
+  - [Option B: Running from Source](#option-b-running-from-source)
+  - [Option C: Building Standalone Executable (.exe)](#option-c-building-standalone-executable-exe)
+- [4-Stage Workflow Guide & Examples](#4-stage-workflow-guide--examples)
+  - [Stage 1: Fragment Extractor](#stage-1-fragment-extractor)
+  - [Stage 2: Feature Studio (36 Suites / 359 Columns)](#stage-2-feature-studio-36-suites--359-columns)
+  - [Stage 3: Detection Methods (AFRL & HEDGE)](#stage-3-detection-methods-afrl--hedge)
+  - [Stage 4: CSV Dataset Combiner](#stage-4-csv-dataset-combiner)
+- [Sample Dataset & Performance Benchmark](#sample-dataset--performance-benchmark)
+- [Directory Structure](#directory-structure)
+- [Citation](#citation)
+- [License](#license)
 
 ---
 
@@ -29,7 +36,6 @@
 Distinguishing encrypted data fragments from compressed or high-entropy unencrypted data is a critical challenge in digital forensics, network traffic analysis, ransomware early detection, and storage classification. Traditional entropy measures (e.g., Shannon entropy) fail because both compressed and encrypted payloads exhibit near-maximal entropy ($H \approx 8.0$ bits/byte).
 
 **AFRL (A Lightweight Statistical Framework for Real-Time Detection of Encrypted File Fragments)** introduces a multi-stage decision fusion model:
-
 1. **Local Nibble Variance (LNV):** Analyzes non-uniformity across 4-bit nibble distributions using sliding 64-byte windows ($l=64$) with 50% overlap ($s=32$).
 2. **NIST SP 800-22 Statistical Fusion:** Integrates Approximate Entropy (AET), Frequency within a Block (FWT), and Runs Tests (RT).
 3. **Training-Free Zero-Day Classification:** Achieves high accuracy on standard benchmarks without requiring machine learning training or pre-labeled models.
@@ -97,53 +103,48 @@ Explore the main application views and module interfaces:
 
 ### 1. Fragment Extractor Module
 Slices dataset directories into byte fragment CSV files with custom length and sampling rules.
-
 <p align="center">
   <img src="screenshots/Fragment_Extractor.png" alt="Fragment Extractor Interface" width="850"/>
 </p>
 
----
-
 ### 2. Feature Extraction Studio
 Select from 36 statistical suites (359 feature columns) with multi-core parallel processing controls.
-
 <p align="center">
   <img src="screenshots/Feature_Studio.png" alt="Feature Studio Interface" width="850"/>
 </p>
 
----
-
 ### 3. Encrypted Fragment Detection Methods
 Direct threshold-based binary classification (AFRL Framework & HEDGE Ensemble) outputting 0/1 predictions.
-
 <p align="center">
   <img src="screenshots/Detection_Methods.png" alt="Detection Methods Interface" width="850"/>
 </p>
 
----
-
 ### 4. CSV Dataset Combiner
 Merge feature and fragment datasets vertically along rows (Axis 0) or horizontally along columns (Axis 1).
-
 <p align="center">
   <img src="screenshots/Combine_Dataset.png" alt="Combine Dataset Interface" width="850"/>
 </p>
 
 ---
 
-## Installation & Setup
+## Installation & Direct EXE Download
 
-### Prerequisites
+### Option A: Direct Executable Download (Recommended)
 
-* Operating System: Windows 10/11, Linux (Ubuntu 20.04+), or macOS
-* Python Version: **Python 3.9+** (Python 3.10 or 3.11 recommended)
+You can download the pre-compiled, standalone Windows application without needing Python or any dependency installation:
 
-### Option A: Running from Source
+1. Visit the **[Latest Release Page (v1.1.0)](https://github.com/luciunfair/AFRL_Studio/releases/tag/v1.1.0)**.
+2. Download the `AFRL_Studio.zip` archive from assets.
+3. Extract the ZIP file and run `AFRL_Studio.exe`.
+
+---
+
+### Option B: Running from Source
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/your-username/AFRL-Encrypted-Fragment-Studio.git
-   cd AFRL-Encrypted-Fragment-Studio
+   git clone https://github.com/luciunfair/AFRL_Studio.git
+   cd AFRL_Studio
    ```
 
 2. **Create and Activate a Virtual Environment:**
@@ -169,9 +170,9 @@ Merge feature and fragment datasets vertically along rows (Axis 0) or horizontal
 
 ---
 
-### Option B: Building Standalone Executable (.exe)
+### Option C: Building Standalone Executable (.exe)
 
-To package the application into a single portable folder containing `AFRL_Studio.exe` (no Python installation required on target machines):
+To package the application manually using PyInstaller:
 
 1. **Install PyInstaller:**
    ```bash
@@ -190,8 +191,7 @@ To package the application into a single portable folder containing `AFRL_Studio
      MainGui.py
    ```
 
-3. **Locate the Executable:**
-   Navigate to `dist/AFRL_Studio/AFRL_Studio.exe`. Compress the `AFRL_Studio` folder into a `.zip` archive for distribution.
+3. Locate the executable in `dist/AFRL_Studio/AFRL_Studio.exe`.
 
 ---
 
@@ -205,16 +205,6 @@ Slices binary files from a source directory into standardized, unsigned 8-bit by
 * **Dataset-Wide Random Sampling:** Slices $N$ total fragments across all files in a folder.
 * **Per-File Uniform Sampling:** Slices $M$ random fragments per file.
 * **Per-File Sampling with Random Padding:** Pads files smaller than the fragment size using random bytes before extraction.
-
-#### Example Input & Output Format
-* **Input:** Directory containing `.bin`, `.pdf`, `.zip`, `.enc`, or executable files.
-* **Output CSV Structure (4096-Byte Fragment Example):**
-
-```csv
-B0,B1,B2,B3,B4,B5,B6,B7,...,B4095
-137,80,78,71,13,10,26,10,...,212
-241,12,189,45,99,201,14,88,...,177
-```
 
 ---
 
@@ -233,61 +223,16 @@ Extracts cryptographic and statistical metrics per fragment row for machine lear
 | **SOTA Preset** | Moments, KS-Test, 1-Wasserstein, IoC, Rényi/Min/Tsallis Entropies, Autocorrelation, Markov Bigram & MI, Recompression, Wavelet Detail, SFM, ASCII | Comprehensive Multi-Modal Feature Vector |
 | **All NIST** | All 15 NIST SP 800-22 Randomness Tests (Adaptive P-Values & Pass/Fail Decisions) | Formal Cryptographic Randomness Evaluation |
 
-#### Example Output CSV (`all_features.csv`)
-
-```csv
-1_1_longest_run_ones_in_a_block_test_success,1_2_longest_run_ones_in_a_block_test_pvalue,...,35_1_local_nibble_variance_success,35_2_local_nibble_variance_stat,36_afrl_combined_success
-1,0.482103,...,1,38.1204,1
-0,0.000012,...,0,112.5401,0
-```
-
 ---
 
 ### Stage 3: Detection Methods (AFRL & HEDGE)
 
 Direct binary classification studio that evaluates raw fragment CSV files without requiring training machine learning models.
 
-```
-                  ┌─────────────────────────────────────────────────────────┐
-                  │                 Raw Byte Fragment Row                   │
-                  └────────────────────────────┬────────────────────────────┘
-                                               │
-                                               ▼
-                               ┌───────────────────────────────┐
-                               │  Local Nibble Variance (LNV)  │
-                               │       (LNV <= 46.98)          │
-                               └───────────────┬───────────────┘
-                                               │ Pass
-                                               ▼
-                               ┌───────────────────────────────┐
-                               │     NIST Runs Test (RT)       │
-                               │          (p >= 0.01)          │
-                               └───────────────┬───────────────┘
-                                               │ Pass
-                                               ▼
-                               ┌───────────────────────────────┐
-                               │ NIST Frequency in Block (FWT) │
-                               │          (p >= 0.01)          │
-                               └───────────────┬───────────────┘
-                                               │ Pass
-                                               ▼
-                               ┌───────────────────────────────┐
-                               │ NIST Approximate Entropy(AET) │
-                               │          (p >= 0.01)          │
-                               └───────────────┬───────────────┘
-                                               │ All Pass
-                                               ▼
-                               ┌───────────────────────────────┐
-                               │    Output: 1 (ENCRYPTED)      │
-                               │   (If any fail -> 0 UNENC)    │
-                               └───────────────────────────────┘
-```
-
 #### Supported Methods
 
 1. **AFRL Lightweight Framework:**
    * **Rule:** $\text{LNV} \le 46.98 \land p_{\text{AET}} \ge 0.01 \land p_{\text{FWT}} \ge 0.01 \land p_{\text{RT}} \ge 0.01 \implies 1 \text{ (Encrypted)}$, else $0$.
-
 2. **HEDGE Ensemble Detector:**
    * **Rule:** Evaluates 5 conditions: AET, FWT, Cumulative Sums, Chi-Square Absolute Band ($\mu \pm 2\sigma$), and Chi-Square Confidence Interval ($0.01 \le p \le 0.99$).
 
@@ -295,11 +240,7 @@ Direct binary classification studio that evaluates raw fragment CSV files withou
 
 ### Stage 4: CSV Dataset Combiner
 
-Merges CSV files for dataset creation and model pipeline preparation.
-
-#### Modes
-* **Stack Vertically Along Rows (Axis 0):** Merges datasets containing identical feature columns (e.g., appending unencrypted fragments with encrypted fragments).
-* **Join Side-by-Side Along Columns (Axis 1):** Merges different feature extractions for the same set of fragments (e.g., joining NIST features with AFRL features).
+Merges CSV files vertically along rows (Axis 0) or side-by-side along columns (Axis 1).
 
 ---
 
@@ -318,9 +259,9 @@ Running both detection methods on `sample_dataset/sample_dataset.csv` yields the
 | **AFRL Framework** | **10 / 10 (100%)** | **10 / 10 (100%)** | **20 / 20 (100.0%)** |
 | **HEDGE Detector** | **10 / 10 (100%)** | **6 / 10 (60%)** | **16 / 20 (80.0%)** |
 
-#### Sample Prediction Output Files
+#### Output Benchmark CSV Files
 
-* **`output_sample/AFRL_detection/AFRL_detection.csv`** (100% Accuracy):
+* **AFRL Framework Output (`output_sample/AFRL_detection/AFRL_detection.csv`):**
   ```csv
   AFRL_encrypted
   0
@@ -345,7 +286,7 @@ Running both detection methods on `sample_dataset/sample_dataset.csv` yields the
   1
   ```
 
-* **`output_sample/HEDGE_detection/HEDGE_detection.csv`** (80% Accuracy):
+* **HEDGE Detector Output (`output_sample/HEDGE_detection/HEDGE_detection.csv`):**
   ```csv
   HEDGE_encrypted
   0
@@ -375,7 +316,7 @@ Running both detection methods on `sample_dataset/sample_dataset.csv` yields the
 ## Directory Structure
 
 ```text
-AFRL-Encrypted-Fragment-Studio/
+AFRL_Studio/
 ├── MainGui.py                     # Main Obsidian-Glass Application & GUI Pipeline
 ├── AFRL_fspecials.py              # AFRL LNV & Decision Fusion Core Engine
 ├── HEDGE_fspecials.py             # HEDGE Chi-Square & Ensemble Suite
@@ -410,10 +351,8 @@ AFRL-Encrypted-Fragment-Studio/
 │   │   └── AFRL_detection.csv
 │   ├── HEDGE_detection/
 │   │   └── HEDGE_detection.csv
-│   ├── all_features/
-│   │   └── all_features.csv
-│   └── SOTA/
-│       └── SOTA.csv
+│   └── all_features/
+│       └── all_features.csv
 │
 └── screenshots/                   # GUI Documentation Images
     ├── Fragment_Extractor.png
