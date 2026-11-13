@@ -1,0 +1,23 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build outputs
+build/
+dist/
+*.spec
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment & IDE settings
+.vscode/
+.idea/
+
+
+# OS metadata
+.DS_Store
+Thumbs.db

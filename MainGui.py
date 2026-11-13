@@ -130,7 +130,8 @@ def _load_ui_font(size: int, bold: bool = True):
 
 class GlassButtonRenderer:
     """
-    Renders anti-aliased Frosted Glass pill buttons and crisp vector Radio/Checkbox indicators.
+    Renders anti-aliased Frosted Glass pill buttons, crisp vector Radio/Checkbox
+    indicators, and sleek modern Slider track/thumb graphics.
     """
     PALETTES = {
         "emerald": {
@@ -332,7 +333,6 @@ class GlassButtonRenderer:
         photo = ImageTk.PhotoImage(img.resize((size, size), Image.Resampling.LANCZOS))
         self._widget_cache[key] = photo
         return photo
-
 
 GLASS = GlassButtonRenderer()
 
@@ -542,6 +542,7 @@ def _configure_modern_scrollbars_and_sliders(root_widget):
         ])
         style.configure('Sleek.Vertical.TScrollbar', gripcount=0, background='#2A3B58', darkcolor='#2A3B58', lightcolor='#2A3B58', troughcolor='#0B101B', bordercolor='#0B101B', width=9)
         style.map('Sleek.Vertical.TScrollbar', background=[('pressed', ACCENT_EMERALD), ('active', ACCENT_CYAN)])
+
     except Exception:
         pass
 
@@ -551,6 +552,7 @@ def _configure_modern_scrollbars_and_sliders(root_widget):
                 widget.configure(style='Sleek.Vertical.TScrollbar')
             elif isinstance(widget, tk.Scrollbar):
                 widget.configure(bg='#2A3B58', troughcolor='#0B101B', activebackground=ACCENT_CYAN, highlightthickness=0, bd=0, width=9, relief='flat')
+
             elif isinstance(widget, tk.Canvas):
                 def _wheel(ev, c=widget):
                     try:
@@ -760,7 +762,7 @@ def show_guidance_modal():
         "WORKFLOW OVERVIEW (4-STAGE STUDIO PIPELINE)",
         "────────────────────────────────────────────────────────────",
         "1. Fragment Extractor:",
-        "   Slice raw files from a dataset folder into fixed-size byte fragments (CSV, uint8 0..255).",
+        "   Slice raw files from a dataset folder into fixed-size byte fragments (CSV).",
         "   • Supports ANY fragment length (e.g., 256B, 512B, 1024B, 2048B, 4096B, 8192B+).",
         "",
         "2. Feature Studio:",
@@ -768,13 +770,11 @@ def show_guidance_modal():
         "   for training ML/DL classifiers. All suites adapt automatically to any fragment length.",
         "",
         "3. Detection Methods (Direct Binary Classification: 1 = Encrypted, 0 = Unencrypted):",
-        "   Run direct threshold/ensemble encryption detectors directly on uint8 fragment CSVs:",
-        "   • AFRL Framework: Combines Approximate Entropy Test (AET), Frequency Test within a Block (FWT),",
-        "     Runs Test (RT), and Local Nibble Variance (LNV <= 46.98; window l=64B, overlap s=32B).",
+        "   Run direct threshold/ensemble encryption detectors directly on fragment CSVs:",
+        "   • AFRL Detector: Combines NIST Approximate Entropy, Block Frequency, Runs Test,",
+        "     and Local Nibble Variance (LNV <= 46.98 on 64-byte sliding windows).",
         "   • HEDGE Detector: Combines NIST Approximate Entropy, Block Frequency, Cumulative Sums,",
         "     Chi-Square Absolute Band (gamma=2), and Chi-Square Confidence (0.01 <= p <= 0.99).",
-        "   • SOTA '26 Detector: 7-stage statistical hypothesis detector (IoC, KS + Wasserstein-1,",
-        "     Lag-{1,2,4,8} Autocorr, Markov Bigram Ratio, Wiener SFM + Haar Wavelet, Recompression, ASCII).",
         "   • Output CSV contains 1 (Encrypted) or 0 (Unencrypted) per fragment row.",
         "",
         "4. Combine Datasets:",
@@ -810,7 +810,7 @@ def show_about_modal():
     reg = {}
     desc_text = "\n".join([
         "Universal any-length fragment slicer, statistical feature extraction suite,",
-        "and direct encrypted fragment detection studio (NIST SP 800-22, AFRL, HEDGE, BFLCp, EnCoD, SOTA 2026)."
+        "and direct encrypted fragment detection studio (NIST SP 800-22, AFRL, HEDGE, BFLCp, EnCoD)."
     ])
     layout = [
         [psg.Column([
@@ -904,7 +904,7 @@ def process_row(row, dic_checklist):
         if dic_checklist.get("18_2_chi2_uniform_pvalue"):
             all_features.append(p_value)
 
-    # BFLCp & EnCoD (19..22)
+    # BLFCP & EnCoD (19..22)
     if dic_checklist.get("19_byte_frequency_distribution"):
         all_features.extend(byte_frequency_distribution(row_np))
     if dic_checklist.get("20_discrete_fourier_transform"):
@@ -972,7 +972,8 @@ def generate_feature_headers(dic_checklist):
 
 
 def _fast_count_lines(file_path: str) -> int:
-    """Fast binary buffered newline counter for large CSV files."""
+    """Fast binary buffered newline counter for large CSV files (excludes detected header)."""
+    skip_rows, _ = _detect_header_and_frag_width(file_path)
     count = 0
     with open(file_path, 'rb') as f:
         while True:
@@ -980,49 +981,73 @@ def _fast_count_lines(file_path: str) -> int:
             if not buf:
                 break
             count += buf.count(b'\n')
-    return max(1, count)
+    return max(1, count - skip_rows)
+
+
+def _detect_header_and_frag_width(file_path: str):
+    """
+    Inspects the first two lines of a fragment CSV to determine:
+      1) Whether row 0 is a header row (either non-numeric OR mismatched column count vs row 1,
+         e.g., pandas duplicate-column suffix headers like '167.1, 11.1, ...' of width 5542
+         followed by 4096-byte data rows).
+      2) The exact fragment byte width (number of data columns).
+    """
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        line0 = f.readline().strip()
+        line1 = f.readline().strip()
+
+    if not line0:
+        return 0, 0
+
+    cols0 = [c for c in line0.split(',') if c != '']
+    if not line1:
+        try:
+            float(cols0[0].strip())
+            return 0, len(cols0)
+        except ValueError:
+            return 1, len(cols0)
+
+    cols1 = [c for c in line1.split(',') if c != '']
+    # Check if line0 has non-numeric tokens OR differs in column count from line1
+    is_non_numeric = False
+    try:
+        float(cols0[0].strip())
+    except ValueError:
+        is_non_numeric = True
+
+    if is_non_numeric or (len(cols0) != len(cols1)):
+        return 1, len(cols1)
+    return 0, len(cols0)
 
 
 def _iter_uint8_fragment_chunks(file_path: str, chunk_size: int):
     """
-    Safely streams fragment rows as contiguous uint8 (0..255) NumPy blocks.
-    Automatically skips text or mismatched header rows and strips scattered NaN columns
-    caused by accidental header-enabled CSV concatenation.
+    Safely streams fragment rows as contiguous uint8 (0..255) NumPy blocks,
+    automatically skipping both text headers and numeric/pandas-mangled headers
+    (such as duplicate-column headers like '167.1, 11.1' with different column count)
+    and handling float-formatted bytes (e.g., '243.0') without NaN padding.
     """
     skip_rows, data_cols = _detect_header_and_frag_width(file_path)
+    usecols = list(range(data_cols)) if data_cols > 0 else None
 
     for chunk_df in pd.read_csv(
         file_path,
         header=None,
         skiprows=skip_rows,
+        usecols=usecols,
         chunksize=chunk_size,
         engine='c',
     ):
-        # Case A: Clean rectangular matrix with no NaNs
-        if not chunk_df.isna().any().any():
-            arr = chunk_df.to_numpy()
-            if np.issubdtype(arr.dtype, np.integer):
-                yield np.clip(arr, 0, 255).astype(np.uint8, copy=False)
-            elif np.issubdtype(arr.dtype, np.floating):
-                yield np.rint(np.clip(arr, 0.0, 255.0)).astype(np.uint8)
-            else:
-                num_df = chunk_df.apply(pd.to_numeric, errors='coerce').fillna(0.0)
-                yield np.rint(np.clip(num_df.to_numpy(dtype=np.float64), 0.0, 255.0)).astype(np.uint8)
+        arr = chunk_df.to_numpy()
+        if np.issubdtype(arr.dtype, np.integer):
+            yield np.clip(arr, 0, 255).astype(np.uint8, copy=False)
+        elif np.issubdtype(arr.dtype, np.floating):
+            if np.isnan(arr).any():
+                arr = np.nan_to_num(arr, nan=0.0)
+            yield np.rint(np.clip(arr, 0.0, 255.0)).astype(np.uint8)
         else:
-            # Case B: Sparse/misaligned rows (drop NaNs per row and restore exact fragment length)
-            raw_vals = chunk_df.to_numpy(dtype=np.float64)
-            cleaned_rows = []
-            for r in raw_vals:
-                valid = r[~np.isnan(r)]
-                if valid.size > 0:
-                    cleaned_rows.append(np.rint(np.clip(valid, 0.0, 255.0)).astype(np.uint8))
-            if cleaned_rows:
-                lengths = {r.size for r in cleaned_rows}
-                if len(lengths) == 1:
-                    yield np.vstack(cleaned_rows)
-                else:
-                    for r in cleaned_rows:
-                        yield r.reshape(1, -1)
+            num_df = chunk_df.apply(pd.to_numeric, errors='coerce').fillna(0.0)
+            yield np.rint(np.clip(num_df.to_numpy(dtype=np.float64), 0.0, 255.0)).astype(np.uint8)
 
 
 def parallel_feature_extraction_large_file(window, input_file_path, output_file_path, dic_checklist, cancel_event, chunk_size=200):
@@ -1096,19 +1121,6 @@ DETECTION_METHODS_REGISTRY = {
             "  4) Chi-Square Uniformity Absolute Band (mu +/- 2*sigma, adaptive to fragment length L)\n"
             "  5) Chi-Square Uniformity Confidence Interval (0.01 <= p-value <= 0.99)\n"
             "Output: 1 = Encrypted fragment (passes all 5 checks), 0 = Unencrypted fragment."
-        ),
-    },
-    "SOTA": {
-        "name": "SOTA '26 Multi-Modal Statistical Detector (IoC + Wasserstein + Markov + Spectral + Recomp)",
-        "func": SOTA_test,
-        "header": "SOTA_encrypted",
-        "description": (
-            "SOTA '26 Multi-Modal Detector: Evaluates 7 orthogonal scale-adaptive criteria under H0:\n"
-            "  1) Index of Coincidence (IoC) & KS + 1-Wasserstein Uniformity Distance\n"
-            "  2) Multi-Lag Autocorrelation (Lags 1, 2, 4, 8) & Markov 1st-Order Bigram Independence\n"
-            "  3) Spectral Flatness (Wiener Entropy) & 1-Level Haar Wavelet Detail Ratio\n"
-            "  4) Multi-Algo Kolmogorov Incompressibility (zlib/bz2/lzma >= 0.995) & Anti-Evasion ASCII/Min-Entropy\n"
-            "Output: 1 = Encrypted fragment (passes all 7 criteria), 0 = Unencrypted fragment."
         ),
     },
 }
@@ -1503,15 +1515,13 @@ def build_main_window():
         [psg.VPush()]
     ]
 
-    # VIEW 3: ENCRYPTED FRAGMENT DETECTION METHODS (AFRL, HEDGE & SOTA '26)
+    # VIEW 3: ENCRYPTED FRAGMENT DETECTION METHODS (AFRL & HEDGE)
     view_detect_layout = [
         [psg.Frame(' 1. Select Encrypted Fragment Detection Method ', [
             [psg.Radio("AFRL Framework — Local Nibble Variance (LNV) & NIST Statistical Fusion (1 = Encrypted, 0 = Unencrypted)",
                        "DETECT_METHOD", key="-DET-METHOD-AFRL-", default=True, enable_events=True, background_color=BG_CARD, font=FONT_BOLD)],
             [psg.Radio("HEDGE Detector — Chi-Square Absolute/Confidence Bands & NIST Ensemble (1 = Encrypted, 0 = Unencrypted)",
                        "DETECT_METHOD", key="-DET-METHOD-HEDGE-", default=False, enable_events=True, background_color=BG_CARD, font=FONT_BOLD)],
-            [psg.Radio("SOTA '26 Detector — IoC, Wasserstein, Markov Bigrams, Spectral & Recompression (1 = Encrypted, 0 = Unencrypted)",
-                       "DETECT_METHOD", key="-DET-METHOD-SOTA-", default=False, enable_events=True, background_color=BG_CARD, font=FONT_BOLD)],
             [psg.Text(DETECTION_METHODS_REGISTRY["AFRL"]["description"], key="-DET-METHOD-DESC-", font=FONT_SUBTITLE, text_color=TEXT_MUTED, background_color=BG_CARD, pad=((26, 6), (4, 6)))],
         ], background_color=BG_CARD, title_color=ACCENT_CYAN, font=FONT_SECTION, expand_x=True, pad=(6, 6), relief=psg.RELIEF_FLAT)],
         [psg.Frame(' 2. Input Fragments & Output Predictions CSV ', [
@@ -1553,7 +1563,7 @@ def build_main_window():
     ]
 
     status_footer = psg.Column([[
-        psg.Text(f"● System Ready   │   Detected {mp.cpu_count()} Logical CPU Cores   │   36 Feature Suites + AFRL, HEDGE & SOTA '26 Detectors Ready",
+        psg.Text(f"● System Ready   │   Detected {mp.cpu_count()} Logical CPU Cores   │   36 Feature Suites + AFRL & HEDGE Detectors Ready",
                  font=FONT_SUBTITLE, text_color=TEXT_MUTED, background_color=BG_CARD_TOP),
         psg.Push(background_color=BG_CARD_TOP),
         psg.Text("Studio v1.1.0", font=FONT_SUBTITLE, text_color=ACCENT_CYAN, background_color=BG_CARD_TOP),
@@ -1653,13 +1663,13 @@ if __name__ == '__main__':
                 input_csv_path=values.get("-QUICK-FEAT-IN-", "").strip(),
                 output_csv_path=values.get("-QUICK-FEAT-OUT-", "").strip(),
             )
-        elif event in ("-DET-METHOD-AFRL-", "-DET-METHOD-HEDGE-", "-DET-METHOD-SOTA-"):
-            sel_method = "SOTA" if values.get("-DET-METHOD-SOTA-") else ("HEDGE" if values.get("-DET-METHOD-HEDGE-") else "AFRL")
+        elif event in ("-DET-METHOD-AFRL-", "-DET-METHOD-HEDGE-"):
+            sel_method = "HEDGE" if values.get("-DET-METHOD-HEDGE-") else "AFRL"
             info = DETECTION_METHODS_REGISTRY[sel_method]
             window["-DET-METHOD-DESC-"].update(info["description"])
             window["-DET-HEADER-"].update(text=f"  Include column header ('{info['header']}') in output CSV")
         elif event == '-BTN-RUN-DET-':
-            method_key = "SOTA" if values.get("-DET-METHOD-SOTA-") else ("HEDGE" if values.get("-DET-METHOD-HEDGE-") else "AFRL")
+            method_key = "HEDGE" if values.get("-DET-METHOD-HEDGE-") else "AFRL"
             run_detection_method_workflow(
                 method_key,
                 values.get("-DET-IN-", "").strip(),
