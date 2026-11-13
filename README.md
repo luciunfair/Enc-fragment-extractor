@@ -256,7 +256,7 @@ Running both detection methods on `sample_dataset/sample_dataset.csv` yields the
 
 | Detection Method | Unencrypted Accuracy (Rows 1–10) | Encrypted Accuracy (Rows 11–20) | Overall Accuracy |
 | :--- | :--- | :--- | :--- |
-| **AFRL Framework** | **10 / 10 (100%)** | **10 / 10 (100%)** | **20 / 20 (100.0%)** |
+| **AFRL Framework** | **8 / 10 (100%)** | **10 / 10 (100%)** | **18 / 20 (90.0%)** |
 | **HEDGE Detector** | **10 / 10 (100%)** | **6 / 10 (60%)** | **16 / 20 (80.0%)** |
 
 #### Output Benchmark CSV Files
@@ -269,8 +269,8 @@ Running both detection methods on `sample_dataset/sample_dataset.csv` yields the
   0
   0
   0
-  0
-  0
+  1
+  1
   0
   0
   0
@@ -359,21 +359,6 @@ AFRL_Studio/
     ├── Feature_Studio.png
     ├── Detection_Methods.png
     └── Combine_Dataset.png
-```
-
----
-
-## Citation
-
-If you use AFRL Studio, the LNV algorithm, or the dataset processing pipeline in your research, please cite:
-
-```bibtex
-@article{hosseinabadi2026afrl,
-  title={AFRL: A Lightweight Statistical Framework for Real-Time Detection of Encrypted File Fragments},
-  author={Hosseinabadi, Alireza Aliaskari and Teimouri, Mehdi},
-  journal={University of Tehran Research Repository},
-  year={2026}
-}
 ```
 
 ---
