@@ -9,38 +9,27 @@ input_files = [
     "E:\\dataset\\encod\\enc_val.csv"
 ]
 
-# Number of random samples from each file
 samples_per_file = 5
+output_file = "random_samples.csv"
 
-# Output file
-output_file = "sample_dataset.csv"
-
-# Fixed random seed (optional)
-random_seed = 42
-
-# Collect samples
 all_samples = []
 
 for file in input_files:
-    df = pd.read_csv(file)
+    # Read CSV without header
+    df = pd.read_csv(file, header=None)
 
     if len(df) < samples_per_file:
-        raise ValueError(
-            f"{file} has only {len(df)} rows!"
-        )
+        raise ValueError(f"{file} has only {len(df)} rows!")
 
     # Randomly select 5 rows
-    samples = df.sample(
-        n=samples_per_file,
-        random_state=random_seed
-    )
+    samples = df.sample(n=samples_per_file)
 
     all_samples.append(samples)
 
-# Merge all samples in order
+# Concatenate in input file order
 result = pd.concat(all_samples, ignore_index=True)
 
-# Save output
-result.to_csv(output_file, index=False)
+# Save without header and index
+result.to_csv(output_file, index=False, header=False)
 
 print(f"Done! {len(result)} samples saved to {output_file}")

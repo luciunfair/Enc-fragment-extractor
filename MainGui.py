@@ -60,7 +60,7 @@ from SOTA_fspecials import (
     haar_wavelet_detail_ratio, spectral_flatness_measure, structural_run_and_ascii,
     SOTA_test,
 )
-from AFRL_fspecials import local_nibbles_variance, AFRL_test
+from AFRL_fspecials import local_nibble_variance, AFRL_test
 from combine import concatenate_rows_gui, concatenate_columns_gui
 
 
@@ -474,18 +474,22 @@ class SleekCpuSlider:
         ratio = (self.value - self.min_val) / float(self.max_val - self.min_val)
         knob_x = x_start + ratio * usable
 
+        # 1. Recessed dark track background with high-contrast border
         self._draw_pill(x_start, y1, x_end, y2, fill="#060A12", outline="#334B70", width=1)
 
+        # 2. Subtle scale ticks along track (10%, 25%, 50%, 75%, 100%)
         for tick_pct in (10, 25, 50, 75, 100):
             tr = (tick_pct - self.min_val) / float(self.max_val - self.min_val)
             tx = x_start + tr * usable
             c.create_line(tx, y2 + 3, tx, y2 + 6, fill="#3B5278", width=1)
 
+        # 3. Luminous Emerald -> Cyan active progress fill bar
         if knob_x > x_start + 2:
             fill_col = ACCENT_CYAN if (self.hover or self.dragging) else ACCENT_EMERALD
             rim_col = "#A7F3D0" if not (self.hover or self.dragging) else "#BAE6FD"
             self._draw_pill(x_start, y1, knob_x, y2, fill=fill_col, outline=rim_col, width=1)
 
+        # 4. High-contrast glowing circular knob (dark outer halo + bright emerald/cyan ring + crisp white core)
         r_halo = 11 if (self.hover or self.dragging) else 10
         r_knob = 8.5 if (self.hover or self.dragging) else 7.5
         r_core = 3.2
@@ -532,6 +536,7 @@ def _configure_modern_scrollbars_and_sliders(root_widget):
         if 'clam' in style.theme_names():
             style.theme_use('clam')
 
+        # 1. Slim pill vertical scrollbar
         style.layout('Sleek.Vertical.TScrollbar', [
             ('Vertical.Scrollbar.trough', {'sticky': 'ns', 'children': [('Vertical.Scrollbar.thumb', {'expand': '1', 'sticky': 'nswe'})]})
         ])
@@ -678,7 +683,7 @@ HEDGE_UI_ITEMS = [
     ("18.2 Chi-Square Uniform p-value",   "18_2_chi2_uniform_pvalue"),
 ]
 
-BLFCP_UI_ITEMS = [
+BFLCp_UI_ITEMS = [
     ("19. Byte Frequency Distribution (256 cols)", "19_byte_frequency_distribution"),
     ("20. Discrete Fourier Transform (10 cols)",   "20_discrete_fourier_transform"),
     ("21. Lempel-Ziv Complexity (Normalized LZ76)","21_lempel_ziv_complexity"),
@@ -701,15 +706,15 @@ SOTA_SUITE_DEFS = [
 ]
 
 AFRL_UI_ITEMS = [
-    ("35.1 Local Nibbles Variance (Success)",      "35_1_local_nibbles_variance_success"),
-    ("35.2 Local Nibbles Variance (Stat)",         "35_2_local_nibbles_variance_stat"),
+    ("35.1 Local Nibble Variance (LNV Success)",   "35_1_local_nibble_variance_success"),
+    ("35.2 Local Nibble Variance (LNV Stat)",      "35_2_local_nibble_variance_stat"),
     ("36. AFRL Combined Decision (Success)",       "36_afrl_combined_success"),
 ]
 
 ALL_FEATURE_KEYS = (
     [k for num, base, _, _, _, _ in NIST_SUITE_DEFS for k in (f"{num}_1_{base}_success", f"{num}_2_{base}_pvalue")]
     + [k for _, k in HEDGE_UI_ITEMS]
-    + [k for _, k in BLFCP_UI_ITEMS]
+    + [k for _, k in BFLCp_UI_ITEMS]
     + [k for k, _, _, _, _ in SOTA_SUITE_DEFS]
     + [k for _, k in AFRL_UI_ITEMS]
 )
@@ -719,8 +724,8 @@ PRESET_AFRL = {
     '3_1_approximate_entropy_test_success',
     '4_1_frequency_within_block_test_success',
     '5_1_runs_test_success',
-    '35_1_local_nibbles_variance_success',
-    '35_2_local_nibbles_variance_stat',
+    '35_1_local_nibble_variance_success',
+    '35_2_local_nibble_variance_stat',
     '36_afrl_combined_success',
 }
 PRESET_HEDGE = {
@@ -728,7 +733,7 @@ PRESET_HEDGE = {
     '8_1_cumulative_sums_test_success', '16_chi_test_absolute_success', '17_chi_test_confidence_success',
 }
 PRESET_ENCOD = {'19_byte_frequency_distribution'}
-PRESET_BLFCP = {
+PRESET_BFLCp = {
     '18_1_chi2_uniform_stat', '18_2_chi2_uniform_pvalue', '19_byte_frequency_distribution',
     '20_discrete_fourier_transform', '21_lempel_ziv_complexity', '22_monte_carlo_pi_approximation',
 }
@@ -740,7 +745,7 @@ PRESET_SOTA = {k for k, _, _, _, _ in SOTA_SUITE_DEFS}
 # =====================================================================
 def set_window_icon(win):
     try:
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "main_icon.png")
+        icon_path = resource_path(os.path.join("icons", "main_icon.png"))
         if os.path.exists(icon_path):
             icon_photo = ImageTk.PhotoImage(Image.open(icon_path))
             win.TKroot.icon_photo = icon_photo
@@ -755,7 +760,7 @@ def show_guidance_modal():
         "WORKFLOW OVERVIEW (4-STAGE STUDIO PIPELINE)",
         "────────────────────────────────────────────────────────────",
         "1. Fragment Extractor:",
-        "   Slice raw files from a dataset folder into fixed-size byte fragments (CSV).",
+        "   Slice raw files from a dataset folder into fixed-size byte fragments (CSV, uint8 0..255).",
         "   • Supports ANY fragment length (e.g., 256B, 512B, 1024B, 2048B, 4096B, 8192B+).",
         "",
         "2. Feature Studio:",
@@ -763,9 +768,9 @@ def show_guidance_modal():
         "   for training ML/DL classifiers. All suites adapt automatically to any fragment length.",
         "",
         "3. Detection Methods (Direct Binary Classification: 1 = Encrypted, 0 = Unencrypted):",
-        "   Run direct threshold/ensemble encryption detectors directly on fragment CSVs:",
-        "   • AFRL Detector: Combines NIST Approximate Entropy, Block Frequency, Runs Test,",
-        "     and Local Nibbles Variance (LNV <= 46.98 on 64-byte sliding windows).",
+        "   Run direct threshold/ensemble encryption detectors directly on uint8 fragment CSVs:",
+        "   • AFRL Framework: Combines Approximate Entropy Test (AET), Frequency Test within a Block (FWT),",
+        "     Runs Test (RT), and Local Nibble Variance (LNV <= 46.98; window l=64B, overlap s=32B).",
         "   • HEDGE Detector: Combines NIST Approximate Entropy, Block Frequency, Cumulative Sums,",
         "     Chi-Square Absolute Band (gamma=2), and Chi-Square Confidence (0.01 <= p <= 0.99).",
         "   • SOTA '26 Detector: 7-stage statistical hypothesis detector (IoC, KS + Wasserstein-1,",
@@ -777,10 +782,10 @@ def show_guidance_modal():
         "",
         "FEATURE STUDIO BENCHMARK PRESETS",
         "────────────────────────────────────────────────────────────",
-        "• AFRL Suite: 3_1, 4_1, 5_1, 35_1_local_nibbles_variance_success, 35_2_stat, 36_afrl_combined_success",
+        "• AFRL Suite (AET + FWT + RT + LNV): 3_1, 4_1, 5_1, 35_1_local_nibble_variance_success, 35_2_stat, 36_afrl_combined_success",
         "• HEDGE Full Suite: 3_1, 4_1, 8_1, 16_chi_test_absolute_success, 17_chi_test_confidence_success",
         "• EnCoD Suite: 19_byte_frequency_distribution (256 normalized byte frequencies)",
-        "• BLFCP Full Suite: 18_1, 18_2, 19 (256), 20 (10 DFT), 21 (Normalized LZ76), 22 (Monte Carlo Pi)",
+        "• BFLCp Full Suite: 18_1, 18_2, 19 (256), 20 (10 DFT), 21 (Normalized LZ76), 22 (Monte Carlo Pi)",
         "• SOTA 2024–2026 Suite (28 cols): Moments, KS, Wasserstein, IoC, Rényi/Min/Tsallis Entropies,",
         "  Lag-{1,2,4,8} Autocorr, Markov Bigrams/MI, Byte Diffs, Re-Compression, Haar Wavelet, SFM, ASCII",
     ])
@@ -805,16 +810,16 @@ def show_about_modal():
     reg = {}
     desc_text = "\n".join([
         "Universal any-length fragment slicer, statistical feature extraction suite,",
-        "and direct encrypted fragment detection studio (NIST SP 800-22, AFRL, HEDGE, BLFCP, EnCoD, SOTA 2026)."
+        "and direct encrypted fragment detection studio (NIST SP 800-22, AFRL, HEDGE, BFLCp, EnCoD, SOTA 2026)."
     ])
     layout = [
         [psg.Column([
             [psg.Text("AFRL", font=FONT_TITLE, text_color=ACCENT_CYAN, background_color=BG_CARD)],
-            [psg.Text("An Open-Source Software Tool for Distinguishing Encrypted File Fragments from High-Entropy Data", font=FONT_BOLD, text_color=TEXT_PRIMARY, background_color=BG_CARD)],
+            [psg.Text("A Lightweight Statistical Framework for Real-Time Detection of Encrypted File Fragments", font=FONT_BOLD, text_color=TEXT_PRIMARY, background_color=BG_CARD)],
             [psg.Text("Version 1.1.0 — Studio Edition", font=FONT_BOLD, text_color=TEXT_MUTED, background_color=BG_CARD)],
             [psg.HorizontalSeparator(color=BORDER_CARD)],
             [psg.Text(desc_text, font=('Segoe UI', 10), text_color=TEXT_PRIMARY, background_color=BG_CARD)],
-            [psg.Text("Created by: Alireza Aliaskari Hosseinabadi", font=FONT_BOLD, background_color=BG_CARD, pad=((0, 0), (10, 4)))],
+            [psg.Text("Authors: Alireza Aliaskari Hosseinabadi and Mehdi Teimouri (University of Tehran)", font=FONT_BOLD, background_color=BG_CARD, pad=((0, 0), (10, 4)))],
             [psg.Text("License: GNU General Public License v3.0 (GPL-3.0)", font=FONT_SUBTITLE, text_color=TEXT_MUTED, background_color=BG_CARD)],
             [psg.VPush(background_color=BG_CARD)],
             [psg.Push(background_color=BG_CARD), make_glass_btn(reg, "-OK-", "Close", 140, 38, palette="emerald", parent_bg=BG_CARD, icon="check"), psg.Push(background_color=BG_CARD)]
@@ -899,7 +904,7 @@ def process_row(row, dic_checklist):
         if dic_checklist.get("18_2_chi2_uniform_pvalue"):
             all_features.append(p_value)
 
-    # BLFCP & EnCoD (19..22)
+    # BFLCp & EnCoD (19..22)
     if dic_checklist.get("19_byte_frequency_distribution"):
         all_features.extend(byte_frequency_distribution(row_np))
     if dic_checklist.get("20_discrete_fourier_transform"):
@@ -919,11 +924,11 @@ def process_row(row, dic_checklist):
                 all_features.append(res)
 
     # AFRL Features (35..36)
-    if dic_checklist.get("35_1_local_nibbles_variance_success") or dic_checklist.get("35_2_local_nibbles_variance_stat"):
-        lnv_success, lnv_stat, _ = local_nibbles_variance(row_np)
-        if dic_checklist.get("35_1_local_nibbles_variance_success"):
+    if dic_checklist.get("35_1_local_nibble_variance_success") or dic_checklist.get("35_2_local_nibble_variance_stat"):
+        lnv_success, lnv_stat, _ = local_nibble_variance(row_np)
+        if dic_checklist.get("35_1_local_nibble_variance_success"):
             all_features.append(1 if lnv_success else 0)
-        if dic_checklist.get("35_2_local_nibbles_variance_stat"):
+        if dic_checklist.get("35_2_local_nibble_variance_stat"):
             all_features.append(lnv_stat)
     if dic_checklist.get("36_afrl_combined_success"):
         all_features.append(int(AFRL_test(row_np)))
@@ -978,6 +983,48 @@ def _fast_count_lines(file_path: str) -> int:
     return max(1, count)
 
 
+def _iter_uint8_fragment_chunks(file_path: str, chunk_size: int):
+    """
+    Safely streams fragment rows as contiguous uint8 (0..255) NumPy blocks.
+    Automatically skips text or mismatched header rows and strips scattered NaN columns
+    caused by accidental header-enabled CSV concatenation.
+    """
+    skip_rows, data_cols = _detect_header_and_frag_width(file_path)
+
+    for chunk_df in pd.read_csv(
+        file_path,
+        header=None,
+        skiprows=skip_rows,
+        chunksize=chunk_size,
+        engine='c',
+    ):
+        # Case A: Clean rectangular matrix with no NaNs
+        if not chunk_df.isna().any().any():
+            arr = chunk_df.to_numpy()
+            if np.issubdtype(arr.dtype, np.integer):
+                yield np.clip(arr, 0, 255).astype(np.uint8, copy=False)
+            elif np.issubdtype(arr.dtype, np.floating):
+                yield np.rint(np.clip(arr, 0.0, 255.0)).astype(np.uint8)
+            else:
+                num_df = chunk_df.apply(pd.to_numeric, errors='coerce').fillna(0.0)
+                yield np.rint(np.clip(num_df.to_numpy(dtype=np.float64), 0.0, 255.0)).astype(np.uint8)
+        else:
+            # Case B: Sparse/misaligned rows (drop NaNs per row and restore exact fragment length)
+            raw_vals = chunk_df.to_numpy(dtype=np.float64)
+            cleaned_rows = []
+            for r in raw_vals:
+                valid = r[~np.isnan(r)]
+                if valid.size > 0:
+                    cleaned_rows.append(np.rint(np.clip(valid, 0.0, 255.0)).astype(np.uint8))
+            if cleaned_rows:
+                lengths = {r.size for r in cleaned_rows}
+                if len(lengths) == 1:
+                    yield np.vstack(cleaned_rows)
+                else:
+                    for r in cleaned_rows:
+                        yield r.reshape(1, -1)
+
+
 def parallel_feature_extraction_large_file(window, input_file_path, output_file_path, dic_checklist, cancel_event, chunk_size=200):
     try:
         num_cores = max(1, int(mp.cpu_count() * dic_checklist["-cpu-"] / 100))
@@ -996,11 +1043,11 @@ def parallel_feature_extraction_large_file(window, input_file_path, output_file_
         mp_subchunk = max(1, chunk_size // (num_cores * 2))
 
         with mp.Pool(processes=num_cores) as pool:
-            for i, chunk_df in enumerate(pd.read_csv(input_file_path, header=None, dtype=np.uint8, chunksize=chunk_size, engine='c')):
+            for i, uint8_block in enumerate(_iter_uint8_fragment_chunks(input_file_path, chunk_size)):
                 if cancel_event.is_set():
                     window.write_event_value('-THREAD-DONE-', (False, "Process cancelled by user."))
                     return
-                results = pool.map(worker_fn, chunk_df.to_numpy(dtype=np.uint8), chunksize=mp_subchunk)
+                results = pool.map(worker_fn, uint8_block, chunksize=mp_subchunk)
                 pd.DataFrame(results).to_csv(
                     output_file_path, index=False,
                     mode='w' if is_first_chunk else 'a',
@@ -1023,16 +1070,18 @@ def parallel_feature_extraction_large_file(window, input_file_path, output_file_
 # =====================================================================
 DETECTION_METHODS_REGISTRY = {
     "AFRL": {
-        "name": "AFRL Ensemble Detector (AppEn + BlockFreq + Runs + LNV)",
+        "name": "AFRL Lightweight Statistical Framework (AET + FWT + RT + LNV)",
         "func": AFRL_test,
         "header": "AFRL_encrypted",
         "description": (
-            "AFRL Method: Evaluates each byte fragment across 4 vectorized criteria:\n"
-            "  1) NIST Approximate Entropy Test (p >= 0.01)\n"
-            "  2) NIST Frequency Within Block Test (p >= 0.01)\n"
-            "  3) NIST Runs Test (p >= 0.01)\n"
-            "  4) Local Nibbles Variance (LNV <= 46.98 across 64-byte sliding windows)\n"
-            "Output: 1 = Encrypted fragment (passes all 4 checks), 0 = Unencrypted fragment."
+            "AFRL Framework (Hosseinabadi & Teimouri, University of Tehran):\n"
+            "Training-free real-time detector combining 4 complementary statistical tests:\n"
+            "  1) AET (Approximate Entropy Test, NIST SP 800-22, p >= 0.01)\n"
+            "  2) FWT (Frequency Test within a Block, NIST SP 800-22, p >= 0.01)\n"
+            "  3) RT  (Runs Test, NIST SP 800-22, p >= 0.01)\n"
+            "  4) LNV (Local Nibble Variance <= 46.98; window l=64B, overlap s=32B)\n"
+            "Data Type: Strictly processed as unsigned 8-bit integers (uint8, values 0..255).\n"
+            "Output: 1 = Encrypted fragment (all 4 pass), 0 = Unencrypted fragment."
         ),
     },
     "HEDGE": {
@@ -1087,11 +1136,11 @@ def parallel_detection_large_file(window, input_file_path, output_file_path, met
         mp_subchunk = max(1, chunk_size // (num_cores * 2))
 
         with mp.Pool(processes=num_cores) as pool:
-            for i, chunk_df in enumerate(pd.read_csv(input_file_path, header=None, dtype=np.uint8, chunksize=chunk_size, engine='c')):
+            for i, uint8_block in enumerate(_iter_uint8_fragment_chunks(input_file_path, chunk_size)):
                 if cancel_event.is_set():
                     window.write_event_value('-THREAD-DONE-', (False, "Detection stopped by user."))
                     return
-                preds_arr = np.asarray(pool.map(worker_fn, chunk_df.to_numpy(dtype=np.uint8), chunksize=mp_subchunk), dtype=np.uint8)
+                preds_arr = np.asarray(pool.map(worker_fn, uint8_block, chunksize=mp_subchunk), dtype=np.uint8)
                 total_processed += preds_arr.size
                 encrypted_count += int(np.sum(preds_arr))
                 pd.DataFrame(preds_arr).to_csv(
@@ -1171,7 +1220,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         nist_rows.append([psg.Checkbox(lbl_p, key=f"{num}_2_{base}_pvalue", background_color=BG_CARD)])
 
     hedge_rows = [[psg.Checkbox(lbl, key=k, background_color=BG_CARD)] for lbl, k in HEDGE_UI_ITEMS]
-    blfcp_rows = [[psg.Checkbox(lbl, key=k, background_color=BG_CARD)] for lbl, k in BLFCP_UI_ITEMS]
+    blfcp_rows = [[psg.Checkbox(lbl, key=k, background_color=BG_CARD)] for lbl, k in BFLCp_UI_ITEMS]
     sota_rows  = [[psg.Checkbox(lbl, key=k, background_color=BG_CARD)] for k, lbl, _, _, _ in SOTA_SUITE_DEFS]
     afrl_rows  = [[psg.Checkbox(lbl, key=k, background_color=BG_CARD)] for lbl, k in AFRL_UI_ITEMS]
 
@@ -1179,7 +1228,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
                            background_color=BG_CARD, title_color=ACCENT_CYAN, font=FONT_SECTION, pad=(5, 5), relief=psg.RELIEF_FLAT)
     hedge_frame = psg.Frame(' HEDGE Chi-Square Suite ', [[psg.Column(hedge_rows, background_color=BG_CARD)]],
                             background_color=BG_CARD, title_color=ACCENT_CYAN, font=FONT_SECTION, pad=(5, 5), expand_x=True, relief=psg.RELIEF_FLAT)
-    blfcp_frame = psg.Frame(' BLFCP & EnCoD Suite ', [[psg.Column(blfcp_rows, background_color=BG_CARD)]],
+    blfcp_frame = psg.Frame(' BFLCp & EnCoD Suite ', [[psg.Column(blfcp_rows, background_color=BG_CARD)]],
                             background_color=BG_CARD, title_color=ACCENT_CYAN, font=FONT_SECTION, pad=(5, 5), expand_x=True, relief=psg.RELIEF_FLAT)
     sota_frame = psg.Frame(' SOTA Multi-Modal & Markov Suite (2024–2026) ', [[psg.Column(sota_rows, scrollable=True, vertical_scroll_only=True, size=(400, 210), background_color=BG_CARD)]],
                            background_color=BG_CARD, title_color=ACCENT_CYAN, font=FONT_SECTION, pad=(5, 5), expand_x=True, relief=psg.RELIEF_FLAT)
@@ -1192,7 +1241,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         psg.Text("│", text_color=BORDER_CARD, background_color=BG_CARD, font=FONT_TITLE),
         make_glass_btn(reg, "-PRESET-AFRL-",  "AFRL",        96, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
         make_glass_btn(reg, "-PRESET-HEDGE-", "HEDGE",      104, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
-        make_glass_btn(reg, "-PRESET-BLFCP-", "BLFCP",      102, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
+        make_glass_btn(reg, "-PRESET-BFLCp-", "BFLCp",      102, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
         make_glass_btn(reg, "-PRESET-ENCOD-", "EnCoD",      104, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
         make_glass_btn(reg, "-PRESET-SOTA-",  "SOTA '26",   114, 34, palette="indigo", parent_bg=BG_CARD, radius=9, font_size=11, icon="star",  pad=(4, 5)),
         make_glass_btn(reg, "-PRESET-NIST-",  "All NIST",   112, 34, palette="cyan",   parent_bg=BG_CARD, radius=9, font_size=11, icon="bolt",  pad=(4, 5)),
@@ -1231,7 +1280,7 @@ def open_feature_extractor_studio(input_csv_path="", output_csv_path=""):
         "-PRESET-NONE-":  set(),
         "-PRESET-AFRL-":  PRESET_AFRL,
         "-PRESET-HEDGE-": PRESET_HEDGE,
-        "-PRESET-BLFCP-": PRESET_BLFCP,
+        "-PRESET-BFLCp-": PRESET_BFLCp,
         "-PRESET-ENCOD-": PRESET_ENCOD,
         "-PRESET-SOTA-":  PRESET_SOTA,
         "-PRESET-NIST-":  {k for k in ALL_FEATURE_KEYS if k.split('_')[0].isdigit() and int(k.split('_')[0]) <= 15} - DISABLED_NIST_KEYS,
@@ -1393,7 +1442,7 @@ def build_main_window():
     }
 
     header_banner = psg.Column([
-        [psg.Text("AFRL  —  Encrypted Fragment Analysis & Detection Studio", font=FONT_TITLE, text_color=ACCENT_CYAN, background_color=BG_CARD_TOP),
+        [psg.Text("AFRL  —  Encrypted File Fragment Detection & Analysis Studio", font=FONT_TITLE, text_color=ACCENT_CYAN, background_color=BG_CARD_TOP),
          psg.Push(background_color=BG_CARD_TOP),
          make_glass_btn(reg, "-NAV-GUIDE-", "Guidance", 122, 34, palette="smoked", parent_bg=BG_CARD_TOP, radius=9, font_size=11, icon="book", pad=(4, 4)),
          make_glass_btn(reg, "-NAV-ABOUT-", "About",    104, 34, palette="smoked", parent_bg=BG_CARD_TOP, radius=9, font_size=11, icon="info", pad=(4, 4))],
@@ -1435,7 +1484,7 @@ def build_main_window():
 
     # VIEW 2: FEATURE EXTRACTOR
     notice_text = (
-        "All 36 statistical suites (all 15 NIST SP 800-22 tests, HEDGE, BLFCP/EnCoD, AFRL, and SOTA 2026)\n"
+        "All 36 statistical suites (all 15 NIST SP 800-22 tests, HEDGE, BFLCp/EnCoD, AFRL, and SOTA 2026)\n"
         "dynamically adapt their block dimensions, degrees of freedom, and thresholds to ANY fragment length."
     )
     view_feat_layout = [
@@ -1457,7 +1506,7 @@ def build_main_window():
     # VIEW 3: ENCRYPTED FRAGMENT DETECTION METHODS (AFRL, HEDGE & SOTA '26)
     view_detect_layout = [
         [psg.Frame(' 1. Select Encrypted Fragment Detection Method ', [
-            [psg.Radio("AFRL Detector — Adaptive Nibble Variance & NIST Statistical Ensemble (1 = Encrypted, 0 = Unencrypted)",
+            [psg.Radio("AFRL Framework — Local Nibble Variance (LNV) & NIST Statistical Fusion (1 = Encrypted, 0 = Unencrypted)",
                        "DETECT_METHOD", key="-DET-METHOD-AFRL-", default=True, enable_events=True, background_color=BG_CARD, font=FONT_BOLD)],
             [psg.Radio("HEDGE Detector — Chi-Square Absolute/Confidence Bands & NIST Ensemble (1 = Encrypted, 0 = Unencrypted)",
                        "DETECT_METHOD", key="-DET-METHOD-HEDGE-", default=False, enable_events=True, background_color=BG_CARD, font=FONT_BOLD)],
@@ -1522,7 +1571,7 @@ def build_main_window():
         [status_footer],
     ]
 
-    window = psg.Window('AFRL', main_layout, size=(960, 715), resizable=True, finalize=True)
+    window = psg.Window('AFRL: An Open-Source Software Tool for Distinguishing Encrypted File Fragments from High-Entropy Data', main_layout, size=(960, 715), resizable=True, finalize=True)
     set_window_icon(window)
     det_cpu_state = {"-DET-CPU-": 80}
     det_cpu_slider = SleekCpuSlider(window["-DET-CPU-"], window["-DET-CPU-BADGE-"], det_cpu_state, "-DET-CPU-", default_val=80, bg_hex=BG_CARD)
@@ -1540,7 +1589,7 @@ def _prewarm_studio_assets():
         ("Clear All",  110, 34, "smoked", BG_CARD, 9, 11, "close"),
         ("AFRL",        96, 34, "indigo", BG_CARD, 9, 11, "star"),
         ("HEDGE",      104, 34, "indigo", BG_CARD, 9, 11, "star"),
-        ("BLFCP",      102, 34, "indigo", BG_CARD, 9, 11, "star"),
+        ("BFLCp",      102, 34, "indigo", BG_CARD, 9, 11, "star"),
         ("EnCoD",      104, 34, "indigo", BG_CARD, 9, 11, "star"),
         ("SOTA '26",   114, 34, "indigo", BG_CARD, 9, 11, "star"),
         ("All NIST",   112, 34, "cyan",   BG_CARD, 9, 11, "bolt"),
